@@ -4,7 +4,7 @@
  * Plugin Name: IP2Location Country Blocker
  * Plugin URI: https://ip2location.com/resources/wordpress-ip2location-country-blocker
  * Description: Block visitors from accessing your website or admin area by their country.
- * Version: 2.36.2
+ * Version: 2.37.0
  * Author: IP2Location
  * Author URI: https://www.ip2location.com
  * Text Domain: ip2location-country-blocker.
@@ -908,7 +908,7 @@ class IP2LocationCountryBlocker
 						<td>
 							<input type="text" name="bypass_code" id="bypass_code" maxlength="20" value="' . esc_attr($bypass_code) . '" class="regular-text code input-field" />
 							<p class="description">
-								' . sprintf(__('This is the secret code used to bypass all blockings to backend pages. It take precedence over all block settings configured. To bypass, you just need to append the %1$ssecret_code%2$s parameter with above value to the wp-login.php page. For example, https://www.example.com/wp-login.php%3$s?secret_code=1234567%4$s', 'ip2location-country-blocker'), '<strong>', '</strong>', '<code>', '</code>') . '
+								' . sprintf(__('This is the secret code used to bypass all blockings to backend pages. It take precedence over all block settings configured. To bypass, you just need to append the %1$ssecret_code%2$s parameter with above value to the wp-login.php page. For example, https://www.example.com/wp-login.php%3$s?secret_code=1234567%4$s. If you add in %5s&action=emergency_stop%6s, both frontend and backend blocking will be disabled immediately.', 'ip2location-country-blocker'), '<strong>', '</strong>', '<code>', '</code>', '<code>', '</code>') . '
 							</p>
 						</td>
 					</tr>
@@ -2191,6 +2191,7 @@ class IP2LocationCountryBlocker
 			}
 
 			$secret_code = (isset($_GET['secret_code'])) ? sanitize_text_field($_GET['secret_code']) : (($this->cache_get($this->get_ip() . '_secret_code')) ?: md5(microtime()));
+			$action = (isset($_GET['action'])) ? sanitize_text_field($_GET['action']) : '';
 
 			$this->cache_add($this->get_ip() . '_secret_code', $secret_code);
 
@@ -2199,6 +2200,13 @@ class IP2LocationCountryBlocker
 			// Stop validation if bypass code is provided.
 			if ($bypass_code == $secret_code) {
 				$this->write_debug_log('Bypassed with secret code.');
+
+				if ($action == 'emergency_stop') {
+					$this->write_debug_log('Emergency stop.');
+
+					update_option('ip2location_country_blocker_backend_enabled', 0);
+					update_option('ip2location_country_blocker_frontend_enabled', 0);
+				}
 
 				return;
 			}
