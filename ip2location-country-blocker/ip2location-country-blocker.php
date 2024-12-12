@@ -4,7 +4,7 @@
  * Plugin Name: IP2Location Country Blocker
  * Plugin URI: https://ip2location.com/resources/wordpress-ip2location-country-blocker
  * Description: Block visitors from accessing your website or admin area by their country.
- * Version: 2.37.2
+ * Version: 2.38.0
  * Author: IP2Location
  * Author URI: https://www.ip2location.com
  * Text Domain: ip2location-country-blocker.
@@ -63,17 +63,30 @@ class IP2LocationCountryBlocker
 	];
 
 	private $robots = [
-		'baidu'      => 'Baidu',
-		'bingbot'    => 'Bing',
-		'feedburner' => 'FeedBurner',
-		'google'     => 'Google',
-		'msnbot'     => 'MSN',
-		'slurp'      => 'Yahoo',
-		'yandex'     => 'Yandex',
+		'applebot'            => 'Apple',
+		'ahrefs'              => 'AhrefsBot',
+		'baidu'               => 'Baidu',
+		'bingbot'             => 'Bing',
+		'blekkobot'           => 'Blekko',
+		'duckduckgo'          => 'DuckDuckGo',
+		'exalead'             => 'ExaLead',
+		'facebookexternalhit' => 'Facebook',
+		'feedburner'          => 'FeedBurner',
+		'gigablast'           => 'Gigablast',
+		'gptbot'              => 'GPTBot',
+		'google'              => 'Google',
+		'linkedinbot'         => 'LinkedIn',
+		'msnbot'              => 'MSN',
+		'pinterest'           => 'Pinterest',
+		'semrushbot'          => 'SemrushBot',
+		'sogou'               => 'Sogou',
+		'twitterbot'          => 'Twitter/X',
+		'slurp'               => 'Yahoo',
+		'yandex'              => 'Yandex',
 	];
 
 	private $proxy_types = [
-		'VPN', 'TOR', 'DCH', 'PUB', 'WEB', 'SES',
+		'VPN', 'TOR', 'DCH', 'PUB', 'WEB', 'SES', 'RES', 'CPN', 'EPN',
 	];
 
 	private $debug_log = '';
@@ -125,7 +138,7 @@ class IP2LocationCountryBlocker
 			$cache_warning = '
 			<div class="error">
 				<p>
-					This IP2Location Country Blocker plugin does not work well with the <strong>' . $name . '</strong> cache plugin. To avoid unexpected results, we will strongly recommend you to deactivate the cache plugin.
+					It appears that you are currently using ' . $name . ', which is not fully compatible with the IP2Location Country Blocker. This may lead to unintended issues. We recommend disabling and uninstalling the cache plugin.
 				</p>
 			</div>';
 		}
