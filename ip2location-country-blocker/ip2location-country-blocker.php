@@ -4,7 +4,7 @@
  * Plugin Name: IP2Location Country Blocker
  * Plugin URI: https://ip2location.com/resources/wordpress-ip2location-country-blocker
  * Description: Block visitors from accessing your website or admin area by their country.
- * Version: 2.38.0
+ * Version: 2.38.1
  * Author: IP2Location
  * Author URI: https://www.ip2location.com
  * Text Domain: ip2location-country-blocker.
@@ -138,7 +138,7 @@ class IP2LocationCountryBlocker
 			$cache_warning = '
 			<div class="error">
 				<p>
-					It appears that you are currently using ' . $name . ', which is not fully compatible with the IP2Location Country Blocker. This may lead to unintended issues. We recommend disabling and uninstalling the cache plugin.
+					It appears that you are currently using <strong>' . $name . '</strong>, which is not fully compatible with the IP2Location Country Blocker. This may lead to unintended issues. We recommend disabling and uninstalling the cache plugin.
 				</p>
 			</div>';
 		}
@@ -3110,12 +3110,15 @@ class IP2LocationCountryBlocker
 		$plugins = [
 			'Breeze'           => 'breeze/breeze.php',
 			'Cache Enabler'    => 'cache-enabler/cache-enabler.php',
+			'LiteSpeed Cache'  => 'litespeed-cache/litespeed-cache.php',
+			'Super Page Cache' => 'wp-cloudflare-page-cache/wp-cloudflare-super-page-cache.php',
 			'W3 Total Cache'   => 'w3-total-cache/w3-total-cache.php',
 			'WP Fastest Cache' => 'wp-fastest-cache/wpFastestCache.php',
 			'WP Optimizer'     => 'wp-optimize/wp-optimize.php',
 			'WP Rocket'        => 'wp-rocket/wp-rocket.php',
 			'WP Super Cache'   => 'wp-super-cache/wp-cache.php',
 		];
+
 
 		foreach ($plugins as $name => $path) {
 			if (is_plugin_active($path)) {
