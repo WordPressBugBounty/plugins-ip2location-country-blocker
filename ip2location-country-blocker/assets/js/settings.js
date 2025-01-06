@@ -1,5 +1,5 @@
 jQuery(document).ready(function ($) {
-	$('#lookup_mode')
+	$('select#lookup_mode')
 		.on('change', function () {
 			if ($(this).val() == 'bin') {
 				$('#bin_database').show();
@@ -17,7 +17,7 @@ jQuery(document).ready(function ($) {
 		var ipv4_only = $('#download_ipv4_only').is(':checked');
 
 		$('#download_token').prop('readonly', true);
-		$('#update_ip2location_database, #lookup_mode, #download_ipv4_only').prop('disabled', true);
+		$('#update_ip2location_database, select#lookup_mode, #download_ipv4_only').prop('disabled', true);
 
 		$('#update_status').html('<span class="dashicons dashicons-update spin"></span> Updating database...');
 
@@ -43,11 +43,11 @@ jQuery(document).ready(function ($) {
 			})
 			.always(function () {
 				$('#download_token').prop('readonly', false);
-				$('#update_ip2location_database, #lookup_mode, #download_ipv4_only').prop('disabled', false);
+				$('#update_ip2location_database, select#lookup_mode, #download_ipv4_only').prop('disabled', false);
 			});
 	});
 
-	$('#px_lookup_mode')
+	$('select#px_lookup_mode')
 		.on('change', function () {
 			if ($(this).val() == 'px_bin') {
 				$('#px_bin_database').show();
@@ -68,7 +68,7 @@ jQuery(document).ready(function ($) {
 		var ipv4_only = $('#px_download_ipv4_only').is(':checked');
 
 		$('#px_download_token').prop('readonly', true);
-		$('#update_ip2proxy_database, #px_lookup_mode, #px_download_ipv4_only').prop('disabled', true);
+		$('#update_ip2proxy_database, select#px_lookup_mode, #px_download_ipv4_only').prop('disabled', true);
 
 		$('#px_update_status').html('<span class="dashicons dashicons-update spin"></span> Updating database...');
 
@@ -94,7 +94,7 @@ jQuery(document).ready(function ($) {
 			})
 			.always(function () {
 				$('#px_download_token').prop('readonly', false);
-				$('#update_ip2proxy_database, #px_lookup_mode, #px_download_ipv4_only').prop('disabled', false);
+				$('#update_ip2proxy_database, select#px_lookup_mode, #px_download_ipv4_only').prop('disabled', false);
 			});
 	});
 
