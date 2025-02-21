@@ -4,7 +4,7 @@
  * Plugin Name: IP2Location Country Blocker
  * Plugin URI: https://ip2location.com/resources/wordpress-ip2location-country-blocker
  * Description: Block visitors from accessing your website or admin area by their country.
- * Version: 2.38.8
+ * Version: 2.38.9
  * Author: IP2Location
  * Author URI: https://www.ip2location.com
  * Text Domain: ip2location-country-blocker.
@@ -113,7 +113,13 @@ class IP2LocationCountryBlocker
 
 	public function admin_init()
 	{
-		if (isset($_POST['action']) && $_POST['action'] == 'download_backup') {
+		if (isset($_POST['action']) && $_POST['action'] == 'download_ip2location_country_blocker_backup') {
+			if (!current_user_can('administrator')) {
+				exit;
+			}
+
+			check_admin_referer('backup');
+
 			$results = $GLOBALS['wpdb']->get_results("SELECT option_name, option_value FROM {$GLOBALS['wpdb']->prefix}options WHERE option_name LIKE 'ip2location_country_blocker_%'", OBJECT);
 
 			if ($results) {
@@ -1859,7 +1865,8 @@ class IP2LocationCountryBlocker
 			</form>
 
 			<form id="form_download_backup" method="post">
-				<input type="hidden" name="action" value="download_backup">
+				' . wp_nonce_field('backup') . '
+				<input type="hidden" name="action" value="download_ip2location_country_blocker_backup">
 			</form>
 
 			<div class="clear"></div>

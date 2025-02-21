@@ -5,7 +5,7 @@ Donate link: https://www.ip2location.com
 Tags: ip2location, block country, block proxy, redirection, ip address, 403, ipv4, ipv6, detect proxy, ip2proxy, ip geolocation
 Requires at least: 4.6
 Tested up to: 6.7
-Stable tag: 2.38.8
+Stable tag: 2.38.9
 
 Blocks unwanted visitors from accessing your frontend (blog pages) or backend (admin area) by countries or proxy servers.
 
@@ -91,6 +91,7 @@ Send us email at support@ip2location.com
 
 
 == Changelog ==
+* 2.38.9 Fixed XSS vulnerabilities on admin_init function.
 * 2.38.8 Fixed restore function.
 * 2.38.7 Fixed link in default 403 page design.
 * 2.38.6 Updated default 403 page design.
