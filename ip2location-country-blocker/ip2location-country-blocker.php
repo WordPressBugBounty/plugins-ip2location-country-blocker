@@ -4,7 +4,7 @@
  * Plugin Name: IP2Location Country Blocker
  * Plugin URI: https://ip2location.com/resources/wordpress-ip2location-country-blocker
  * Description: Block visitors from accessing your website or admin area by their country.
- * Version: 2.38.9
+ * Version: 2.38.10
  * Author: IP2Location
  * Author URI: https://www.ip2location.com
  * Text Domain: ip2location-country-blocker.
@@ -1825,8 +1825,7 @@ class IP2LocationCountryBlocker
 								<option value="' . $value . '"' . (($real_ip_header == $value) ? ' selected' : '') . '> ' . $value . '</option>';
 		}
 
-		echo '
-							</select>
+		echo '				</select>
 							<p class="description">
 								' . __('If your WordPress is installed behind a reverse proxy or load balancer, the real IP address of the visitors may not forwarded correctly and causing inaccurate country results. Use this option to override the IP detected by IP2Location.', 'ip2location-country-blocker') . '
 							</p>
@@ -1863,12 +1862,10 @@ class IP2LocationCountryBlocker
 					<input type="submit" name="submit" id="submit" class="button button-primary" value="' . __('Save Changes', 'ip2location-country-blocker') . '" />
 				</p>
 			</form>
-
 			<form id="form_download_backup" method="post">
 				' . wp_nonce_field('backup') . '
 				<input type="hidden" name="action" value="download_ip2location_country_blocker_backup">
 			</form>
-
 			<div class="clear"></div>
 		</div>
 
