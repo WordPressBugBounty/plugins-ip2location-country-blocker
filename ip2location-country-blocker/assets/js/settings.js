@@ -237,8 +237,6 @@ jQuery(document).ready(function ($) {
 	$('#btn_download_backup').on('click', function (e) {
 		e.preventDefault();
 		$('#form_download_backup').submit();
-
-		alert('aa');
 	});
 
 	$('#file-restore').uploadFile({

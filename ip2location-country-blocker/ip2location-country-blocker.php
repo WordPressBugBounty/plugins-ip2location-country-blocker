@@ -4,7 +4,7 @@
  * Plugin Name: IP2Location Country Blocker
  * Plugin URI: https://ip2location.com/resources/wordpress-ip2location-country-blocker
  * Description: Block visitors from accessing your website or admin area by their country.
- * Version: 2.38.10
+ * Version: 2.38.11
  * Author: IP2Location
  * Author URI: https://www.ip2location.com
  * Text Domain: ip2location-country-blocker.
@@ -118,7 +118,7 @@ class IP2LocationCountryBlocker
 				exit;
 			}
 
-			check_admin_referer('backup');
+			check_admin_referer('backup', '__nonce');
 
 			$results = $GLOBALS['wpdb']->get_results("SELECT option_name, option_value FROM {$GLOBALS['wpdb']->prefix}options WHERE option_name LIKE 'ip2location_country_blocker_%'", OBJECT);
 
@@ -1862,12 +1862,13 @@ class IP2LocationCountryBlocker
 					<input type="submit" name="submit" id="submit" class="button button-primary" value="' . __('Save Changes', 'ip2location-country-blocker') . '" />
 				</p>
 			</form>
-			<form id="form_download_backup" method="post">
-				' . wp_nonce_field('backup') . '
-				<input type="hidden" name="action" value="download_ip2location_country_blocker_backup">
-			</form>
 			<div class="clear"></div>
 		</div>
+
+		<form id="form_download_backup" method="post">
+			<input type="hidden" id="backup_nonce" name="__nonce" value="' . wp_create_nonce('backup') . '">
+			<input type="hidden" name="action" value="download_ip2location_country_blocker_backup">
+		</form>
 
 		<div id="download-database-modal" class="ip2location-modal">
 			<div class="ip2location-modal-content">
