@@ -4,7 +4,7 @@
  * Plugin Name: IP2Location Country Blocker
  * Plugin URI: https://ip2location.com/resources/wordpress-ip2location-country-blocker
  * Description: Block visitors from accessing your website or admin area by their country.
- * Version: 2.38.12
+ * Version: 2.38.13
  * Author: IP2Location
  * Author URI: https://www.ip2location.com
  * Text Domain: ip2location-country-blocker.
@@ -63,26 +63,32 @@ class IP2LocationCountryBlocker
 	];
 
 	private $robots = [
-		'applebot'            => 'Apple',
-		'ahrefs'              => 'AhrefsBot',
-		'baidu'               => 'Baidu',
-		'bingbot'             => 'Bing',
-		'blekkobot'           => 'Blekko',
-		'duckduckgo'          => 'DuckDuckGo',
-		'exalead'             => 'ExaLead',
-		'facebookexternalhit' => 'Facebook',
-		'feedburner'          => 'FeedBurner',
-		'gigablast'           => 'Gigablast',
-		'gptbot'              => 'GPTBot',
-		'google'              => 'Google',
-		'linkedinbot'         => 'LinkedIn',
-		'msnbot'              => 'MSN',
-		'pinterest'           => 'Pinterest',
-		'semrushbot'          => 'SemrushBot',
-		'sogou'               => 'Sogou',
-		'twitterbot'          => 'Twitter/X',
-		'slurp'               => 'Yahoo',
-		'yandex'              => 'Yandex',
+		'applebot'                    => 'Apple',
+		'ahrefs'                      => 'AhrefsBot',
+		'baidu'                       => 'Baidu',
+		'bingbot'                     => 'Bing',
+		'blekkobot'                   => 'Blekko',
+		'duckduckgo'                  => 'DuckDuckGo',
+		'dotbot'                      => 'MozLink',
+		'exalead'                     => 'ExaLead',
+		'exabot'                      => 'Exabot',
+		'facebookexternalhit'         => 'Facebook',
+		'feedburner'                  => 'FeedBurner',
+		'gigablast'                   => 'Gigablast',
+		'gptbot'                      => 'GPTBot',
+		'google'                      => 'Google',
+		'petalbot'                    => 'Huawei',
+		'archive.org_bot|ia_archiver' => 'Internet Archive',
+		'linkedinbot'                 => 'LinkedIn',
+		'msnbot'                      => 'MSN',
+		'mj12bot'                     => 'Majestic',
+		'pinterest'                   => 'Pinterest',
+		'semrushbot'                  => 'SemrushBot',
+		'sogou'                       => 'Sogou',
+		'whatsapp'                    => 'WhatsApp',
+		'twitterbot'                  => 'Twitter/X',
+		'slurp'                       => 'Yahoo',
+		'yandex'                      => 'Yandex',
 	];
 
 	private $proxy_types = [
@@ -155,7 +161,7 @@ class IP2LocationCountryBlocker
 
 		$frontend_status = '';
 
-		$enable_frontend = (isset($_POST['submit']) && isset($_POST['enable_frontend'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['enable_frontend'])) ? 0 : get_option('ip2location_country_blocker_frontend_enabled'));
+		$enable_frontend = (isset($_POST['submit'], $_POST['enable_frontend'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['enable_frontend'])) ? 0 : get_option('ip2location_country_blocker_frontend_enabled'));
 		$frontend_block_mode = (isset($_POST['frontend_block_mode'])) ? sanitize_text_field($_POST['frontend_block_mode']) : get_option('ip2location_country_blocker_frontend_block_mode');
 		$frontend_ban_list = (isset($_POST['frontend_ban_list'])) ? $this->sanitize_array($_POST['frontend_ban_list']) : (!isset($_POST['submit']) ? get_option('ip2location_country_blocker_frontend_banlist') : '');
 		$frontend_ban_list = (!is_array($frontend_ban_list)) ? [$frontend_ban_list] : $frontend_ban_list;
@@ -165,11 +171,11 @@ class IP2LocationCountryBlocker
 		$frontend_redirect_url = (isset($_POST['frontend_redirect_url'])) ? sanitize_text_field($_POST['frontend_redirect_url']) : get_option('ip2location_country_blocker_frontend_redirect_url');
 		$frontend_ip_blacklist = (isset($_POST['frontend_ip_blacklist'])) ? sanitize_text_field($_POST['frontend_ip_blacklist']) : get_option('ip2location_country_blocker_frontend_ip_blacklist');
 		$frontend_ip_whitelist = (isset($_POST['frontend_ip_whitelist'])) ? sanitize_text_field($_POST['frontend_ip_whitelist']) : get_option('ip2location_country_blocker_frontend_ip_whitelist');
-		$enable_frontend_logged_user_whitelist = (isset($_POST['submit']) && isset($_POST['enable_frontend_logged_user_whitelist'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['enable_frontend_logged_user_whitelist'])) ? 0 : ((get_option('ip2location_country_blocker_frontend_whitelist_logged_user') !== false) ? get_option('ip2location_country_blocker_frontend_whitelist_logged_user') : 1));
-		$frontend_skip_bots = (isset($_POST['submit']) && isset($_POST['frontend_skip_bots'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['frontend_skip_bots'])) ? 0 : get_option('ip2location_country_blocker_frontend_skip_bots'));
+		$enable_frontend_logged_user_whitelist = (isset($_POST['submit'], $_POST['enable_frontend_logged_user_whitelist'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['enable_frontend_logged_user_whitelist'])) ? 0 : ((get_option('ip2location_country_blocker_frontend_whitelist_logged_user') !== false) ? get_option('ip2location_country_blocker_frontend_whitelist_logged_user') : 1));
+		$frontend_skip_bots = (isset($_POST['submit'], $_POST['frontend_skip_bots'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['frontend_skip_bots'])) ? 0 : get_option('ip2location_country_blocker_frontend_skip_bots'));
 		$frontend_bots_list = (isset($_POST['frontend_bots_list'])) ? $this->sanitize_array($_POST['frontend_bots_list']) : (!isset($_POST['submit']) ? get_option('ip2location_country_blocker_frontend_bots_list') : '');
 		$frontend_bots_list = (!is_array($frontend_bots_list)) ? [$frontend_bots_list] : $frontend_bots_list;
-		$frontend_block_proxy = (isset($_POST['submit']) && isset($_POST['frontend_block_proxy'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['frontend_block_proxy'])) ? 0 : get_option('ip2location_country_blocker_frontend_block_proxy'));
+		$frontend_block_proxy = (isset($_POST['submit'], $_POST['frontend_block_proxy'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['frontend_block_proxy'])) ? 0 : get_option('ip2location_country_blocker_frontend_block_proxy'));
 		$frontend_block_proxy_type = (isset($_POST['frontend_block_proxy_type'])) ? $this->sanitize_array($_POST['frontend_block_proxy_type']) : get_option('ip2location_country_blocker_frontend_block_proxy_type');
 
 		// Sanitize inputs
@@ -567,7 +573,7 @@ class IP2LocationCountryBlocker
 
 		$backend_status = '';
 
-		$enable_backend = (isset($_POST['submit']) && isset($_POST['enable_backend'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['enable_backend'])) ? 0 : get_option('ip2location_country_blocker_backend_enabled'));
+		$enable_backend = (isset($_POST['submit'], $_POST['enable_backend'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['enable_backend'])) ? 0 : get_option('ip2location_country_blocker_backend_enabled'));
 		$backend_block_mode = (isset($_POST['backend_block_mode'])) ? sanitize_text_field($_POST['backend_block_mode']) : get_option('ip2location_country_blocker_backend_block_mode');
 		$backend_ban_list = (isset($_POST['backend_ban_list'])) ? $this->sanitize_array($_POST['backend_ban_list']) : (!isset($_POST['submit']) ? get_option('ip2location_country_blocker_backend_banlist') : '');
 		$backend_ban_list = (!is_array($backend_ban_list)) ? [$backend_ban_list] : $backend_ban_list;
@@ -578,10 +584,10 @@ class IP2LocationCountryBlocker
 		$backend_ip_blacklist = (isset($_POST['backend_ip_blacklist'])) ? sanitize_text_field($_POST['backend_ip_blacklist']) : get_option('ip2location_country_blocker_backend_ip_blacklist');
 		$backend_auto_block_threshold = (isset($_POST['backend_auto_block_threshold'])) ? sanitize_text_field($_POST['backend_auto_block_threshold']) : get_option('ip2location_country_blocker_backend_auto_block_threshold');
 		$backend_ip_whitelist = (isset($_POST['backend_ip_whitelist'])) ? sanitize_text_field($_POST['backend_ip_whitelist']) : get_option('ip2location_country_blocker_backend_ip_whitelist');
-		$backend_skip_bots = (isset($_POST['submit']) && isset($_POST['backend_skip_bots'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['backend_skip_bots'])) ? 0 : get_option('ip2location_country_blocker_backend_skip_bots'));
+		$backend_skip_bots = (isset($_POST['submit'], $_POST['backend_skip_bots'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['backend_skip_bots'])) ? 0 : get_option('ip2location_country_blocker_backend_skip_bots'));
 		$backend_bots_list = (isset($_POST['backend_bots_list'])) ? $this->sanitize_array($_POST['backend_bots_list']) : (!isset($_POST['submit']) ? get_option('ip2location_country_blocker_backend_bots_list') : '');
 		$backend_bots_list = (!is_array($backend_bots_list)) ? [$backend_bots_list] : $backend_bots_list;
-		$backend_block_proxy = (isset($_POST['submit']) && isset($_POST['backend_block_proxy'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['backend_block_proxy'])) ? 0 : get_option('ip2location_country_blocker_backend_block_proxy'));
+		$backend_block_proxy = (isset($_POST['submit'], $_POST['backend_block_proxy'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['backend_block_proxy'])) ? 0 : get_option('ip2location_country_blocker_backend_block_proxy'));
 		$backend_block_proxy_type = (isset($_POST['backend_block_proxy_type'])) ? $this->sanitize_array($_POST['backend_block_proxy_type']) : get_option('ip2location_country_blocker_backend_block_proxy_type');
 		$email_notification = (isset($_POST['email_notification'])) ? sanitize_text_field($_POST['email_notification']) : get_option('ip2location_country_blocker_email_notification');
 		$access_email_notification = (isset($_POST['access_email_notification'])) ? sanitize_text_field($_POST['access_email_notification']) : get_option('ip2location_country_blocker_access_email_notification');
@@ -1282,12 +1288,12 @@ class IP2LocationCountryBlocker
 				if (empty($result['country_code'])) {
 					$ip_lookup_status = '
 					<div class="error">
-						<p>' . sprintf(__('%1$sERROR:%2$s Unable to lookup IP address %3$s%4$s%5$s.', 'ip2location-country-blocker'), '<strong>', '</strong>', '<strong>', htmlspecialchars($ip_address), '</strong>') . '</p>
+						<p>' . sprintf(__('%1$sERROR:%2$s Unable to lookup IP address %3$s%4$s%5$s.', 'ip2location-country-blocker'), '<strong>', '</strong>', '<strong>', esc_html($ip_address), '</strong>') . '</p>
 					</div>';
 				} else {
 					$ip_lookup_status = '
 					<div class="updated">
-						<p>' . sprintf(__('IP address %1$s%2$s%3$s belongs to %4$s%5$s (%6$s)%7$s.', 'ip2location-country-blocker'), '<code>', htmlspecialchars($ip_address), '</code>', '<strong>', $result['country_name'], $result['country_code'], '<strong>') . '</p>
+						<p>' . sprintf(__('IP address %1$s%2$s%3$s belongs to %4$s%5$s (%6$s)%7$s.', 'ip2location-country-blocker'), '<code>', esc_attr($ip_address), '</code>', '<strong>', $result['country_name'], $result['country_code'], '<strong>') . '</p>
 					</div>';
 
 					if (!empty($result['is_proxy'])) {
@@ -1350,10 +1356,10 @@ class IP2LocationCountryBlocker
 		$api_key = (isset($_POST['api_key'])) ? sanitize_text_field($_POST['api_key']) : get_option('ip2location_country_blocker_api_key');
 		$px_api_key = (isset($_POST['px_api_key'])) ? sanitize_text_field($_POST['px_api_key']) : get_option('ip2location_country_blocker_px_api_key');
 		$download_token = (isset($_POST['download_token'])) ? sanitize_text_field($_POST['download_token']) : get_option('ip2location_country_blocker_token');
-		$download_ipv4_only = (isset($_POST['lookup_mode']) && isset($_POST['download_ipv4_only'])) ? 1 : ((isset($_POST['lookup_mode']) && !isset($_POST['download_ipv4_only'])) ? 0 : get_option('ip2location_country_blocker_download_ipv4_only'));
-		$detect_forwarder_ip = (isset($_POST['submit']) && isset($_POST['detect_forwarder_ip'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['detect_forwarder_ip'])) ? 0 : get_option('ip2location_country_blocker_detect_forwarder_ip'));
-		$enable_log = (isset($_POST['submit']) && isset($_POST['enable_log'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['enable_log'])) ? 0 : get_option('ip2location_country_blocker_log_enabled'));
-		$enable_debug_log = (isset($_POST['submit']) && isset($_POST['enable_debug_log'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['enable_debug_log'])) ? 0 : get_option('ip2location_country_blocker_debug_log_enabled'));
+		$download_ipv4_only = (isset($_POST['lookup_mode'], $_POST['download_ipv4_only'])) ? 1 : ((isset($_POST['lookup_mode']) && !isset($_POST['download_ipv4_only'])) ? 0 : get_option('ip2location_country_blocker_download_ipv4_only'));
+		$detect_forwarder_ip = (isset($_POST['submit'], $_POST['detect_forwarder_ip'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['detect_forwarder_ip'])) ? 0 : get_option('ip2location_country_blocker_detect_forwarder_ip'));
+		$enable_log = (isset($_POST['submit'], $_POST['enable_log'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['enable_log'])) ? 0 : get_option('ip2location_country_blocker_log_enabled'));
+		$enable_debug_log = (isset($_POST['submit'], $_POST['enable_debug_log'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['enable_debug_log'])) ? 0 : get_option('ip2location_country_blocker_debug_log_enabled'));
 		$real_ip_header = (isset($_POST['real_ip_header'])) ? sanitize_text_field($_POST['real_ip_header']) : get_option('ip2location_country_blocker_real_ip_header');
 
 		if (!in_array($real_ip_header, array_values($real_ip_headers))) {
@@ -3144,7 +3150,6 @@ class IP2LocationCountryBlocker
 			'WP Rocket'        => 'wp-rocket/wp-rocket.php',
 			'WP Super Cache'   => 'wp-super-cache/wp-cache.php',
 		];
-
 
 		foreach ($plugins as $name => $path) {
 			if (is_plugin_active($path)) {
