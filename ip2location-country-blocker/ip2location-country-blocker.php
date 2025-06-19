@@ -4,7 +4,7 @@
  * Plugin Name: IP2Location Country Blocker
  * Plugin URI: https://ip2location.com/resources/wordpress-ip2location-country-blocker
  * Description: Block visitors from accessing your website or admin area by their country.
- * Version: 2.38.13
+ * Version: 2.38.14
  * Author: IP2Location
  * Author URI: https://www.ip2location.com
  * Text Domain: ip2location-country-blocker.
@@ -2279,7 +2279,7 @@ class IP2LocationCountryBlocker
 			}
 
 			if (get_option('ip2location_country_blocker_backend_auto_block_threshold')) {
-				$GLOBALS['wpdb']->query('INSERT INTO ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_backend_rate_limit_log(ip_address, date_created) VALUES ("' . $this->get_ip() . '", "' . date('Y-m-d H:i:s') . '")');
+				$GLOBALS['wpdb']->query($GLOBALS['wpdb']->prepare('INSERT INTO ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_backend_rate_limit_log(ip_address, date_created) VALUES (%s, %s)', $this->get_ip(), date('Y-m-d H:i:s')));
 
 				$total = $GLOBALS['wpdb']->get_var('SELECT COUNT(*) FROM ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_backend_rate_limit_log WHERE ip_address = "' . $this->get_ip() . '" AND date_created >= "' . date('Y-m-d H:i:s', strtotime('-24 hour')) . '";');
 
@@ -2928,7 +2928,58 @@ class IP2LocationCountryBlocker
 			]));
 		}
 
+		$allowed_options = [
+			'ip2location_country_blocker_access_email_notification',
+			'ip2location_country_blocker_api_key',
+			'ip2location_country_blocker_backend_auto_block_threshold',
+			'ip2location_country_blocker_backend_banlist',
+			'ip2location_country_blocker_backend_block_mode',
+			'ip2location_country_blocker_backend_block_proxy',
+			'ip2location_country_blocker_backend_bots_list',
+			'ip2location_country_blocker_backend_enabled',
+			'ip2location_country_blocker_backend_error_page',
+			'ip2location_country_blocker_backend_ip_blacklist',
+			'ip2location_country_blocker_backend_ip_whitelist',
+			'ip2location_country_blocker_backend_option',
+			'ip2location_country_blocker_backend_redirect_url',
+			'ip2location_country_blocker_backend_skip_bots',
+			'ip2location_country_blocker_bypass_code',
+			'ip2location_country_blocker_database',
+			'ip2location_country_blocker_debug_log_enabled',
+			'ip2location_country_blocker_detect_forwarder_ip',
+			'ip2location_country_blocker_download_ipv4_only',
+			'ip2location_country_blocker_email_notification',
+			'ip2location_country_blocker_frontend_auto_block_threshold',
+			'ip2location_country_blocker_frontend_banlist',
+			'ip2location_country_blocker_frontend_block_mode',
+			'ip2location_country_blocker_frontend_block_proxy',
+			'ip2location_country_blocker_frontend_block_proxy_type',
+			'ip2location_country_blocker_frontend_bots_list',
+			'ip2location_country_blocker_frontend_enabled',
+			'ip2location_country_blocker_frontend_error_page',
+			'ip2location_country_blocker_frontend_ip_blacklist',
+			'ip2location_country_blocker_frontend_ip_whitelist',
+			'ip2location_country_blocker_frontend_option',
+			'ip2location_country_blocker_frontend_redirect_url',
+			'ip2location_country_blocker_frontend_skip_bots',
+			'ip2location_country_blocker_frontend_whitelist_logged_user',
+			'ip2location_country_blocker_log_enabled',
+			'ip2location_country_blocker_lookup_mode',
+			'ip2location_country_blocker_px_api_key',
+			'ip2location_country_blocker_px_database',
+			'ip2location_country_blocker_px_lookup_mode',
+			'ip2location_country_blocker_real_ip_header',
+			'ip2location_country_blocker_session_message',
+			'ip2location_country_blocker_token',
+
+		];
+
 		foreach ($rows as $key => $value) {
+			// Skip invalid options
+			if (!in_array($key, $allowed_options)) {
+				continue;
+			}
+
 			update_option($key, sanitize_text_field($value));
 		}
 
