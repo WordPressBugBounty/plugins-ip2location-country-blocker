@@ -31,6 +31,15 @@ jQuery(document).ready(function ($) {
 			},
 			function (data) {
 				if (data.status == 'OK') {
+					var $btn = $('<button class="button button-primary">')
+						.html('Refresh Page')
+						.on('click', function (e) {
+							e.preventDefault();
+							location.href = location.href;
+						});
+
+					$('#update_ip2location_database').parent().append($btn);
+					$('#update_ip2location_database').remove();
 					$('#update_status').html('<span class="dashicons dashicons-yes-alt"></span> Database updated successfully.');
 				} else {
 					$('#update_status').html('<span class="dashicons dashicons-warning"></span>' + data.message);
@@ -82,6 +91,15 @@ jQuery(document).ready(function ($) {
 			},
 			function (data) {
 				if (data.status == 'OK') {
+					var $btn = $('<button class="button button-primary">')
+						.html('Refresh Page')
+						.on('click', function (e) {
+							e.preventDefault();
+							location.href = location.href;
+						});
+
+					$('#update_ip2proxy_database').parent().append($btn);
+					$('#update_ip2proxy_database').remove();
 					$('#px_update_status').html('<span class="dashicons dashicons-yes-alt"></span> Database updated successfully.');
 				} else {
 					$('#px_update_status').html('<span class="dashicons dashicons-warning"></span>' + data.message);
@@ -239,7 +257,7 @@ jQuery(document).ready(function ($) {
 		$('#form_download_backup').submit();
 	});
 
-	$('#file-restore').uploadFile({
+	$('#restore_file').uploadFile({
 		url: ajaxurl,
 		formData: {
 			action: 'ip2location_country_blocker_restore',
@@ -248,9 +266,9 @@ jQuery(document).ready(function ($) {
 		multiple: false,
 		dragDrop: true,
 		maxFileCount: 1,
-		fileName: 'file-restore',
-		acceptFiles:'.json',
-		onSuccess:function(files, data, xhr, pd) {
+		fileName: 'restore_file',
+		acceptFiles: '.json',
+		onSuccess: function (files, data, xhr, pd) {
 			if (data.status != 'OK') {
 				alert(data.message);
 				return;

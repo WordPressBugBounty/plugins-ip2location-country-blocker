@@ -4,7 +4,7 @@
  * Plugin Name: IP2Location Country Blocker
  * Plugin URI: https://ip2location.com/resources/wordpress-ip2location-country-blocker
  * Description: Block visitors from accessing your website or admin area by their country.
- * Version: 2.38.14
+ * Version: 2.39.0
  * Author: IP2Location
  * Author URI: https://www.ip2location.com
  * Text Domain: ip2location-country-blocker.
@@ -112,21 +112,21 @@ class IP2LocationCountryBlocker
 			wp_mkdir_p(IP2LOCATION_DIR . 'caches');
 		}
 
-		$this->debug_log = 'debug_' . hash('sha256', get_option('ip2location_country_blocker_private_key') . get_site_url() . get_option('admin_email')) . '.log';
+		$this->debug_log = 'debug_' . md5($this->get_option('private_key') . get_site_url() . get_option('admin_email')) . '.log';
 
 		add_action('admin_menu', [$this, 'add_admin_menu']);
 	}
 
 	public function admin_init()
 	{
-		if (isset($_POST['action']) && $_POST['action'] == 'download_ip2location_country_blocker_backup') {
+		if ($this->post('action') == 'download_ip2location_country_blocker_backup') {
 			if (!current_user_can('administrator')) {
 				exit;
 			}
 
 			check_admin_referer('backup', '__nonce');
 
-			$results = $GLOBALS['wpdb']->get_results("SELECT option_name, option_value FROM {$GLOBALS['wpdb']->prefix}options WHERE option_name LIKE 'ip2location_country_blocker_%'", OBJECT);
+			$results = $this->wpdb_get_results("SELECT option_name, option_value FROM {$GLOBALS['wpdb']->prefix}options WHERE option_name LIKE 'ip2location_country_blocker_%'");
 
 			if ($results) {
 				$options = [];
@@ -161,123 +161,44 @@ class IP2LocationCountryBlocker
 
 		$frontend_status = '';
 
-		$enable_frontend = (isset($_POST['submit'], $_POST['enable_frontend'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['enable_frontend'])) ? 0 : get_option('ip2location_country_blocker_frontend_enabled'));
-		$frontend_block_mode = (isset($_POST['frontend_block_mode'])) ? sanitize_text_field($_POST['frontend_block_mode']) : get_option('ip2location_country_blocker_frontend_block_mode');
-		$frontend_ban_list = (isset($_POST['frontend_ban_list'])) ? $this->sanitize_array($_POST['frontend_ban_list']) : (!isset($_POST['submit']) ? get_option('ip2location_country_blocker_frontend_banlist') : '');
+		// Default values
+		$enable_frontend = $this->is_checked('enable_frontend', $this->get_option('frontend_enabled'));
+		$frontend_block_mode = $this->post('frontend_block_mode', $this->get_option('frontend_block_mode'));
+		$frontend_ban_list = $this->post('frontend_ban_list', $this->get_option('frontend_banlist'));
 		$frontend_ban_list = (!is_array($frontend_ban_list)) ? [$frontend_ban_list] : $frontend_ban_list;
-		$frontend_option = (isset($_POST['frontend_option'])) ? sanitize_text_field($_POST['frontend_option']) : get_option('ip2location_country_blocker_frontend_option');
-		$frontend_error_page = (isset($_POST['frontend_error_page'])) ? sanitize_text_field($_POST['frontend_error_page']) : get_option('ip2location_country_blocker_frontend_error_page');
-		$frontend_auto_block_threshold = (isset($_POST['frontend_auto_block_threshold'])) ? sanitize_text_field($_POST['frontend_auto_block_threshold']) : get_option('ip2location_country_blocker_frontend_auto_block_threshold');
-		$frontend_redirect_url = (isset($_POST['frontend_redirect_url'])) ? sanitize_text_field($_POST['frontend_redirect_url']) : get_option('ip2location_country_blocker_frontend_redirect_url');
-		$frontend_ip_blacklist = (isset($_POST['frontend_ip_blacklist'])) ? sanitize_text_field($_POST['frontend_ip_blacklist']) : get_option('ip2location_country_blocker_frontend_ip_blacklist');
-		$frontend_ip_whitelist = (isset($_POST['frontend_ip_whitelist'])) ? sanitize_text_field($_POST['frontend_ip_whitelist']) : get_option('ip2location_country_blocker_frontend_ip_whitelist');
-		$enable_frontend_logged_user_whitelist = (isset($_POST['submit'], $_POST['enable_frontend_logged_user_whitelist'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['enable_frontend_logged_user_whitelist'])) ? 0 : ((get_option('ip2location_country_blocker_frontend_whitelist_logged_user') !== false) ? get_option('ip2location_country_blocker_frontend_whitelist_logged_user') : 1));
-		$frontend_skip_bots = (isset($_POST['submit'], $_POST['frontend_skip_bots'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['frontend_skip_bots'])) ? 0 : get_option('ip2location_country_blocker_frontend_skip_bots'));
-		$frontend_bots_list = (isset($_POST['frontend_bots_list'])) ? $this->sanitize_array($_POST['frontend_bots_list']) : (!isset($_POST['submit']) ? get_option('ip2location_country_blocker_frontend_bots_list') : '');
+		$frontend_option = $this->post('frontend_option', $this->get_option('frontend_option'));
+		$frontend_error_page = $this->post('frontend_error_page', $this->get_option('frontend_error_page'));
+		$frontend_auto_block_threshold = $this->post('frontend_auto_block_threshold', $this->get_option('frontend_auto_block_threshold'));
+		$frontend_redirect_url = $this->post('frontend_redirect_url', $this->get_option('frontend_redirect_url'));
+		$frontend_ip_blacklist = $this->post('frontend_ip_blacklist', $this->get_option('frontend_ip_blacklist'));
+		$frontend_ip_whitelist = $this->post('frontend_ip_whitelist', $this->get_option('frontend_ip_whitelist'));
+		$enable_frontend_logged_user_whitelist = $this->is_checked('enable_frontend_logged_user_whitelist', $this->get_option('frontend_whitelist_logged_user'));
+		$frontend_skip_bots = $this->is_checked('frontend_skip_bots', $this->get_option('frontend_skip_bots'));
+		$frontend_bots_list = $this->post('frontend_bots_list', $this->get_option('frontend_bots_list'));
 		$frontend_bots_list = (!is_array($frontend_bots_list)) ? [$frontend_bots_list] : $frontend_bots_list;
-		$frontend_block_proxy = (isset($_POST['submit'], $_POST['frontend_block_proxy'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['frontend_block_proxy'])) ? 0 : get_option('ip2location_country_blocker_frontend_block_proxy'));
-		$frontend_block_proxy_type = (isset($_POST['frontend_block_proxy_type'])) ? $this->sanitize_array($_POST['frontend_block_proxy_type']) : get_option('ip2location_country_blocker_frontend_block_proxy_type');
+		$frontend_block_proxy = $this->is_checked('frontend_block_proxy', $this->get_option('frontend_block_proxy'));
+		$frontend_block_proxy_type = $this->post('frontend_block_proxy_type', $this->get_option('frontend_block_proxy_type'));
 
 		// Sanitize inputs
 		if (!empty($frontend_ip_whitelist)) {
-			if (strpos($frontend_ip_whitelist, ';')) {
-				$list = [];
-
-				$parts = explode(';', $frontend_ip_whitelist);
-
-				sort($parts);
-
-				foreach ($parts as $part) {
-					if (strpos($part, '/') !== false) {
-						list($ip, $range) = explode('/', $part);
-
-						if (filter_var($ip, \FILTER_VALIDATE_IP, \FILTER_FLAG_IPV4)) {
-							if (!preg_match('/^\d{1,2}$/', $range)) {
-								continue;
-							} elseif ($range < 1 || $range > 32) {
-								continue;
-							}
-						} elseif (filter_var($ip, \FILTER_VALIDATE_IP, \FILTER_FLAG_IPV6)) {
-							if (!preg_match('/^\d{1,3}$/', $range)) {
-								continue;
-							} elseif ($range < 1 || $range > 128) {
-								continue;
-							}
-						} else {
-							continue;
-						}
-					} elseif (!filter_var(str_replace('*', '0', $part), \FILTER_VALIDATE_IP)) {
-						continue;
-					}
-
-					$list[] = $part;
-				}
-
-				$frontend_ip_whitelist = implode(';', $list);
-			} else {
-				if (!filter_var(str_replace('*', '0', $frontend_ip_whitelist), \FILTER_VALIDATE_IP)) {
-					$frontend_ip_whitelist = '';
-				}
-			}
+			$frontend_ip_whitelist = $this->sanitize_list($frontend_ip_whitelist);
 		}
 
 		if (!empty($frontend_ip_blacklist)) {
-			if (strpos($frontend_ip_blacklist, ';')) {
-				$list = [];
-
-				$parts = explode(';', $frontend_ip_blacklist);
-
-				sort($parts);
-
-				foreach ($parts as $part) {
-					if (strpos($part, '/') !== false) {
-						list($ip, $range) = explode('/', $part);
-
-						if (filter_var($ip, \FILTER_VALIDATE_IP, \FILTER_FLAG_IPV4)) {
-							if (!preg_match('/^\d{1,2}$/', $range)) {
-								continue;
-							} elseif ($range < 1 || $range > 32) {
-								continue;
-							}
-						} elseif (filter_var($ip, \FILTER_VALIDATE_IP, \FILTER_FLAG_IPV6)) {
-							if (!preg_match('/^\d{1,3}$/', $range)) {
-								continue;
-							} elseif ($range < 1 || $range > 128) {
-								continue;
-							}
-						} else {
-							continue;
-						}
-					} elseif (!filter_var(str_replace('*', '0', $part), \FILTER_VALIDATE_IP)) {
-						continue;
-					}
-
-					$list[] = $part;
-				}
-
-				$frontend_ip_blacklist = implode(';', $list);
-			} else {
-				if (!filter_var(str_replace('*', '0', $frontend_ip_blacklist), \FILTER_VALIDATE_IP, \FILTER_FLAG_NO_PRIV_RANGE | \FILTER_FLAG_NO_RES_RANGE)) {
-					$frontend_ip_blacklist = '';
-				}
-			}
+			$frontend_ip_blacklist = $this->sanitize_list($frontend_ip_blacklist);
 		}
 
-		if (isset($_POST['reset'])) {
-			$GLOBALS['wpdb']->query('TRUNCATE TABLE ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_frontend_rate_limit_log');
+		if ($this->post('reset')) {
+			$this->wpdb_query('TRUNCATE TABLE ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_frontend_rate_limit_log');
 
 			$frontend_status = '
 				<div class="updated">
-					<p>' . __('Frontend auto blacklist log has been reset.', 'ip2location-country-blocker') . '</p>
+					<p>' . __('Frontend blacklist log has been reset.', 'ip2location-country-blocker') . '</p>
 				</div>';
 		}
 
-		if (isset($_POST['submit'])) {
-			check_admin_referer('save-frontend');
-
-			if (!isset($_POST['frontend_block_proxy_type'])) {
-				$frontend_block_proxy_type = '';
-			}
+		if ($this->post('submit')) {
+			check_admin_referer('save_frontend');
 
 			if (!empty($frontend_auto_block_threshold) && !preg_match('/^[0-9]+$/', $frontend_auto_block_threshold)) {
 				$frontend_status = '
@@ -310,20 +231,20 @@ class IP2LocationCountryBlocker
 					}
 				}
 
-				update_option('ip2location_country_blocker_frontend_enabled', $enable_frontend);
-				update_option('ip2location_country_blocker_frontend_block_mode', $frontend_block_mode);
-				update_option('ip2location_country_blocker_frontend_banlist', $frontend_ban_list);
-				update_option('ip2location_country_blocker_frontend_option', $frontend_option);
-				update_option('ip2location_country_blocker_frontend_redirect_url', $frontend_redirect_url);
-				update_option('ip2location_country_blocker_frontend_error_page', $frontend_error_page);
-				update_option('ip2location_country_blocker_frontend_ip_blacklist', $frontend_ip_blacklist);
-				update_option('ip2location_country_blocker_frontend_auto_block_threshold', $frontend_auto_block_threshold);
-				update_option('ip2location_country_blocker_frontend_ip_whitelist', $frontend_ip_whitelist);
-				update_option('ip2location_country_blocker_frontend_whitelist_logged_user', $enable_frontend_logged_user_whitelist);
-				update_option('ip2location_country_blocker_frontend_skip_bots', $frontend_skip_bots);
-				update_option('ip2location_country_blocker_frontend_bots_list', $frontend_bots_list);
-				update_option('ip2location_country_blocker_frontend_block_proxy', $frontend_block_proxy);
-				update_option('ip2location_country_blocker_frontend_block_proxy_type', $frontend_block_proxy_type);
+				$this->update_option('frontend_enabled', $enable_frontend);
+				$this->update_option('frontend_block_mode', $frontend_block_mode);
+				$this->update_option('frontend_banlist', $frontend_ban_list);
+				$this->update_option('frontend_option', $frontend_option);
+				$this->update_option('frontend_redirect_url', $frontend_redirect_url);
+				$this->update_option('frontend_error_page', $frontend_error_page);
+				$this->update_option('frontend_ip_blacklist', $frontend_ip_blacklist);
+				$this->update_option('frontend_auto_block_threshold', $frontend_auto_block_threshold);
+				$this->update_option('frontend_ip_whitelist', $frontend_ip_whitelist);
+				$this->update_option('frontend_whitelist_logged_user', $enable_frontend_logged_user_whitelist);
+				$this->update_option('frontend_skip_bots', $frontend_skip_bots);
+				$this->update_option('frontend_bots_list', $frontend_bots_list);
+				$this->update_option('frontend_block_proxy', $frontend_block_proxy);
+				$this->update_option('frontend_block_proxy_type', $frontend_block_proxy_type);
 
 				$frontend_status = '
 				<div class="updated">
@@ -333,7 +254,7 @@ class IP2LocationCountryBlocker
 			}
 		}
 
-		if (get_option('ip2location_country_blocker_lookup_mode') == 'bin' && !is_file(IP2LOCATION_DIR . get_option('ip2location_country_blocker_database'))) {
+		if ($this->get_option('lookup_mode') == 'bin' && !is_file(IP2LOCATION_DIR . $this->get_option('database'))) {
 			$frontend_status .= '
 			<div class="error">
 				<p>' . sprintf(__('%1$sERROR:%2$s Unable to find the IP2Location BIN database! Please %3$sdownload the BIN database%4$s in Settings page.', 'ip2location-country-blocker'), '<strong>', '</strong>', '<a href="#bin_download">', '</a>') . '</p>
@@ -347,7 +268,7 @@ class IP2LocationCountryBlocker
 			' . $frontend_status . '
 
 			<form method="post" novalidate="novalidate">
-				' . wp_nonce_field('save-frontend') . '
+				' . wp_nonce_field('save_frontend') . '
 				<div style="margin-top:20px">
 					<label for="enable_frontend">
 						<input type="checkbox" name="enable_frontend" id="enable_frontend"' . (($enable_frontend) ? ' checked' : '') . '>
@@ -369,20 +290,17 @@ class IP2LocationCountryBlocker
 								<label><input type="radio" name="frontend_block_mode" value="2"' . (($frontend_block_mode == 2) ? ' checked' : '') . ' class="input-field" /> ' . sprintf(__('Block all countries %1$sexcept%2$s countries listed below.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</label>
 							</fieldset>
 							<select name="frontend_ban_list[]" id="frontend_ban_list" data-placeholder="' . __('Choose Country...', 'ip2location-country-blocker') . '" multiple="true" class="chosen input-field">';
-
-		foreach ($this->country_groups as $group_name => $countries) {
-			echo '
+								foreach ($this->country_groups as $group_name => $countries) {
+									echo '
 									<option value="' . esc_attr($group_name) . '"' . (($this->is_in_array($group_name, $frontend_ban_list)) ? ' selected' : '') . '> ' . esc_html($group_name) . ' Countries</option>';
-		}
+								}
 
-		foreach ($this->countries as $country_code => $country_name) {
-			echo '
+								foreach ($this->countries as $country_code => $country_name) {
+									echo '
 									<option value="' . esc_attr($country_code) . '"' . (($this->is_in_array($country_code, $frontend_ban_list)) ? ' selected' : '') . '> ' . esc_html($country_name) . '</option>';
-		}
-
-		echo '
-							</select>
-
+								}
+								echo '
+								</select>
 							<p>' . sprintf(__('%1$sNote:%2$s For EU, APAC and other country groupings, please visit %3$sGeoDataSource Country Grouping Terminology%4$s for details.', 'ip2location-country-blocker'), '<strong>', '</strong>', '<a href="https://github.com/geodatasource/country-grouping-terminology" target="_blank">', '</a>') . '</p>
 						</td>
 					</tr>
@@ -390,54 +308,53 @@ class IP2LocationCountryBlocker
 				</div>
 
 				<div class="postbox" style="margin-top:20px;padding-left:15px;padding-right:15px;padding-bottom:20px;">
-					<table class="form-table" style="margin-left:20px;">
 					<h2 class="title" style="padding-bottom:5px">' . __('Block By Proxy', 'ip2location-country-blocker') . '</h2>
-					<tr>
-						<th scope="row">
-							<label>' . __('Block by proxy IP', 'ip2location-country-blocker') . '</label>
-						</th>
-						<td>
-							<label for="frontend_block_proxy">
-								<input type="checkbox" name="frontend_block_proxy" id="frontend_block_proxy"' . (($frontend_block_proxy) ? ' checked' : '') . ' class="input-field">
-								' . __('Block proxy IP.', 'ip2location-country-blocker') . '
-								<p class="description">
-									' . __('IP2Proxy Lookup Mode is required for this option. You can enable/disable the IP2Proxy Lookup Mode at the Settings tab.', 'ip2location-country-blocker') . '
-								</p>
-							</label>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row">
-							<label>' . __('Block by proxy type', 'ip2location-country-blocker') . '</label>
-						</th>
-						<td>
-							<label for="frontend_block_proxy_type">
-								' . __('Block following proxy type.', 'ip2location-country-blocker') . '
-							</label>
-							<div style="margin-top:10px">
-								<select name="frontend_block_proxy_type[]" id="frontend_block_proxy_type" data-placeholder="' . __('Choose Proxy Type...', 'ip2location-country-blocker') . '" multiple="true" class="chosen input-field">';
 
-		foreach ($this->proxy_types as $proxy_type) {
-			echo '
-										<option value="' . esc_attr($proxy_type) . '"' . (($this->is_in_array($proxy_type, $frontend_block_proxy_type)) ? ' selected' : '') . '> ' . esc_html($proxy_type) . '</option>';
-		}
+					<table class="form-table" style="margin-left:20px;">
+						<tr>
+							<th scope="row">
+								<label>' . __('Block by proxy IP', 'ip2location-country-blocker') . '</label>
+							</th>
+							<td>
+								<label for="frontend_block_proxy">
+									<input type="checkbox" name="frontend_block_proxy" id="frontend_block_proxy"' . (($frontend_block_proxy) ? ' checked' : '') . ' class="input-field">
+									' . __('Block proxy IP.', 'ip2location-country-blocker') . '
+									<p class="description">
+										' . __('IP2Proxy Lookup Mode is required for this option. You can enable/disable the IP2Proxy Lookup Mode at the Settings tab.', 'ip2location-country-blocker') . '
+									</p>
+								</label>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">
+								<label>' . __('Block by proxy type', 'ip2location-country-blocker') . '</label>
+							</th>
+							<td>
+								<label for="frontend_block_proxy_type">
+									' . __('Block following proxy type.', 'ip2location-country-blocker') . '
+								</label>
+								<div style="margin-top:10px">
+									<select name="frontend_block_proxy_type[]" id="frontend_block_proxy_type" data-placeholder="' . __('Choose Proxy Type...', 'ip2location-country-blocker') . '" multiple="true" class="chosen input-field">';
+										foreach ($this->proxy_types as $proxy_type) {
+											echo '
+											<option value="' . esc_attr($proxy_type) . '"' . (($this->is_in_array($proxy_type, $frontend_block_proxy_type)) ? ' selected' : '') . '> ' . esc_html($proxy_type) . '</option>';
+										}
 
-		echo '
-								</select>
-
-								<p class="description">
-									' . sprintf(__('This feature only works with %1$sIP2Proxy Commercial%2$s database.', 'ip2location-country-blocker'), '<a href="https://www.ip2location.com/database/ip2proxy#wordpress-wzdicb" target="_blank">', '</a>') . '
-								</p>
-							</div>
-						</td>
-					</tr>
-
+										echo '
+									</select>
+									<p class="description">
+										' . sprintf(__('This feature only works with %1$sIP2Proxy Commercial%2$s database.', 'ip2location-country-blocker'), '<a href="https://www.ip2location.com/database/ip2proxy#wordpress-wzdicb" target="_blank">', '</a>') . '
+									</p>
+								</div>
+							</td>
+						</tr>
 					</table>
 				</div>
 
 				<div class="postbox" style="margin-top:20px;padding-left:15px;padding-right:15px;padding-bottom:20px;">
-					<table class="form-table" style="margin-left:20px;">
 					<h2 class="title" style="padding-bottom:5px">' . __('Other Settings', 'ip2location-country-blocker') . '</h2>
+
+					<table class="form-table" style="margin-left:20px;">
 					<tr>
 						<th scope="row">
 							<label>' . __('Block by bot', 'ip2location-country-blocker') . '</label>
@@ -450,13 +367,11 @@ class IP2LocationCountryBlocker
 
 							<div style="margin-top:10px;">
 								<select name="frontend_bots_list[]" id="frontend_bots_list" data-placeholder="' . __('Choose Robot...', 'ip2location-country-blocker') . '" multiple="true" class="chosen input-field">';
-
-		foreach ($this->robots as $robot_code => $robot_name) {
-			echo '
+									foreach ($this->robots as $robot_code => $robot_name) {
+										echo '
 										<option value="' . esc_attr($robot_code) . '"' . (($this->is_in_array($robot_code, $frontend_bots_list)) ? ' selected' : '') . '> ' . esc_html($robot_name) . '</option>';
-		}
-
-		echo '
+									}
+									echo '
 								</select>
 							</div>
 						</td>
@@ -484,15 +399,13 @@ class IP2LocationCountryBlocker
 									<input type="radio" name="frontend_option" id="frontend_option_2" value="2"' . (($frontend_option == 2) ? ' checked' : '') . ' class="input-field">
 									' . __('Custom Error Page: ', 'ip2location-country-blocker') . '
 									<select name="frontend_error_page" id="frontend_error_page" class="input-field">';
+										$pages = get_pages(['post_status' => 'publish,private']);
 
-		$pages = get_pages(['post_status' => 'publish,private']);
-
-		foreach ($pages as $page) {
-			echo '
-										<option value="' . esc_attr($page->guid) . '"' . (($frontend_error_page == $page->guid) ? ' selected' : '') . '>' . esc_html($page->post_title) . '</option>';
-		}
-
-		echo '
+										foreach ($pages as $page) {
+											echo '
+											<option value="' . esc_attr($page->guid) . '"' . (($frontend_error_page == $page->guid) ? ' selected' : '') . '>' . esc_html($page->post_title) . '</option>';
+										}
+										echo '
 									</select>
 								</label>
 								<br />
@@ -518,7 +431,7 @@ class IP2LocationCountryBlocker
 					</tr>
 					<tr>
 						<th scope="row">
-							<label>' . __('Automatic Blacklist', 'ip2location-country-blocker') . '</label>
+							<label>' . __('Blacklist Threshold', 'ip2location-country-blocker') . '</label>
 						</th>
 						<td>
 							<input type="text" name="frontend_auto_block_threshold" id="frontend_auto_block_threshold" maxlength="20" placeholder="100" value="' . esc_attr($frontend_auto_block_threshold) . '" class="regular-text code input-field" />
@@ -551,7 +464,7 @@ class IP2LocationCountryBlocker
 			</form>
 
 			<div class="clear"></div>
-			<input type="hidden" id="support_proxy" value="' . ((get_option('ip2location_country_blocker_px_lookup_mode')) ? 1 : 0) . '">
+			<input type="hidden" id="support_proxy" value="' . (($this->get_option('px_lookup_mode')) ? 1 : 0) . '">
 		</div>';
 	}
 
@@ -573,127 +486,49 @@ class IP2LocationCountryBlocker
 
 		$backend_status = '';
 
-		$enable_backend = (isset($_POST['submit'], $_POST['enable_backend'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['enable_backend'])) ? 0 : get_option('ip2location_country_blocker_backend_enabled'));
-		$backend_block_mode = (isset($_POST['backend_block_mode'])) ? sanitize_text_field($_POST['backend_block_mode']) : get_option('ip2location_country_blocker_backend_block_mode');
-		$backend_ban_list = (isset($_POST['backend_ban_list'])) ? $this->sanitize_array($_POST['backend_ban_list']) : (!isset($_POST['submit']) ? get_option('ip2location_country_blocker_backend_banlist') : '');
+		$enable_backend = $this->is_checked('enable_backend', $this->get_option('backend_enabled'));
+		$backend_block_mode = $this->post('backend_block_mode', $this->get_option('backend_block_mode'));
+		$backend_ban_list = $this->post('backend_ban_list', $this->get_option('backend_banlist'));
 		$backend_ban_list = (!is_array($backend_ban_list)) ? [$backend_ban_list] : $backend_ban_list;
-		$backend_option = (isset($_POST['backend_option'])) ? sanitize_text_field($_POST['backend_option']) : get_option('ip2location_country_blocker_backend_option');
-		$backend_error_page = (isset($_POST['backend_error_page'])) ? sanitize_text_field($_POST['backend_error_page']) : get_option('ip2location_country_blocker_backend_error_page');
-		$backend_redirect_url = (isset($_POST['backend_redirect_url'])) ? sanitize_text_field($_POST['backend_redirect_url']) : get_option('ip2location_country_blocker_backend_redirect_url');
-		$bypass_code = (isset($_POST['bypass_code'])) ? sanitize_text_field($_POST['bypass_code']) : get_option('ip2location_country_blocker_bypass_code');
-		$backend_ip_blacklist = (isset($_POST['backend_ip_blacklist'])) ? sanitize_text_field($_POST['backend_ip_blacklist']) : get_option('ip2location_country_blocker_backend_ip_blacklist');
-		$backend_auto_block_threshold = (isset($_POST['backend_auto_block_threshold'])) ? sanitize_text_field($_POST['backend_auto_block_threshold']) : get_option('ip2location_country_blocker_backend_auto_block_threshold');
-		$backend_ip_whitelist = (isset($_POST['backend_ip_whitelist'])) ? sanitize_text_field($_POST['backend_ip_whitelist']) : get_option('ip2location_country_blocker_backend_ip_whitelist');
-		$backend_skip_bots = (isset($_POST['submit'], $_POST['backend_skip_bots'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['backend_skip_bots'])) ? 0 : get_option('ip2location_country_blocker_backend_skip_bots'));
-		$backend_bots_list = (isset($_POST['backend_bots_list'])) ? $this->sanitize_array($_POST['backend_bots_list']) : (!isset($_POST['submit']) ? get_option('ip2location_country_blocker_backend_bots_list') : '');
+		$backend_option = $this->post('backend_option', $this->get_option('backend_option'));
+		$backend_error_page = $this->post('backend_', $this->get_option('backend_error_page'));
+		$backend_redirect_url = $this->post('backend_redirect_url', $this->get_option('backend_redirect_url'));
+		$bypass_code = $this->post('bypass_code', $this->get_option('bypass_code'));
+		$backend_ip_blacklist = $this->post('backend_ip_blacklist', $this->get_option('backend_ip_blacklist'));
+		$backend_auto_block_threshold = $this->post('backend_auto_block_threshold', $this->get_option('backend_auto_block_threshold'));
+		$backend_ip_whitelist = $this->post('backend_ip_whitelist', $this->get_option('backend_ip_whitelist'));
+		$backend_skip_bots = $this->is_checked('backend_skip_bots', $this->get_option('backend_skip_bots'));
+		$backend_bots_list = $this->post('backend_bots_list', $this->get_option('backend_bots_list'));
 		$backend_bots_list = (!is_array($backend_bots_list)) ? [$backend_bots_list] : $backend_bots_list;
-		$backend_block_proxy = (isset($_POST['submit'], $_POST['backend_block_proxy'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['backend_block_proxy'])) ? 0 : get_option('ip2location_country_blocker_backend_block_proxy'));
-		$backend_block_proxy_type = (isset($_POST['backend_block_proxy_type'])) ? $this->sanitize_array($_POST['backend_block_proxy_type']) : get_option('ip2location_country_blocker_backend_block_proxy_type');
-		$email_notification = (isset($_POST['email_notification'])) ? sanitize_text_field($_POST['email_notification']) : get_option('ip2location_country_blocker_email_notification');
-		$access_email_notification = (isset($_POST['access_email_notification'])) ? sanitize_text_field($_POST['access_email_notification']) : get_option('ip2location_country_blocker_access_email_notification');
+		$backend_block_proxy = $this->is_checked('backend_block_proxy', $this->get_option('backend_block_proxy'));
+		$backend_block_proxy_type = $this->post('backend_block_proxy_type', $this->get_option('backend_block_proxy_type'));
+		$email_notification = $this->post('email_notification', $this->get_option('email_notification'));
+		$access_email_notification = $this->post('access_email_notification', $this->get_option('access_email_notification'));
 
 		// Sanitize inputs
 		if (!empty($backend_ip_whitelist)) {
-			if (strpos($backend_ip_whitelist, ';')) {
-				$list = [];
-				$parts = explode(';', $backend_ip_whitelist);
-
-				sort($parts);
-
-				foreach ($parts as $part) {
-					if (strpos($part, '/') !== false) {
-						list($ip, $range) = explode('/', $part);
-
-						if (filter_var($ip, \FILTER_VALIDATE_IP, \FILTER_FLAG_IPV4)) {
-							if (!preg_match('/^\d{1,2}$/', $range)) {
-								continue;
-							} elseif ($range < 1 || $range > 32) {
-								continue;
-							}
-						} elseif (filter_var($ip, \FILTER_VALIDATE_IP, \FILTER_FLAG_IPV6)) {
-							if (!preg_match('/^\d{1,3}$/', $range)) {
-								continue;
-							} elseif ($range < 1 || $range > 128) {
-								continue;
-							}
-						} else {
-							continue;
-						}
-					} elseif (!filter_var(str_replace('*', '0', $part), \FILTER_VALIDATE_IP)) {
-						continue;
-					}
-
-					$list[] = $part;
-				}
-
-				$backend_ip_whitelist = implode(';', $list);
-			} else {
-				if (!filter_var(str_replace('*', '0', $backend_ip_whitelist), \FILTER_VALIDATE_IP, \FILTER_FLAG_NO_PRIV_RANGE | \FILTER_FLAG_NO_RES_RANGE)) {
-					$backend_ip_whitelist = '';
-				}
-			}
+			$backend_ip_whitelist = $this->sanitize_array($backend_ip_whitelist);
 		}
 
 		if (!empty($backend_ip_blacklist)) {
-			if (strpos($backend_ip_blacklist, ';')) {
-				$list = [];
-				$parts = explode(';', $backend_ip_blacklist);
-
-				sort($parts);
-
-				foreach ($parts as $part) {
-					if (strpos($part, '/') !== false) {
-						list($ip, $range) = explode('/', $part);
-
-						if (filter_var($ip, \FILTER_VALIDATE_IP, \FILTER_FLAG_IPV4)) {
-							if (!preg_match('/^\d{1,2}$/', $range)) {
-								continue;
-							} elseif ($range < 1 || $range > 32) {
-								continue;
-							}
-						} elseif (filter_var($ip, \FILTER_VALIDATE_IP, \FILTER_FLAG_IPV6)) {
-							if (!preg_match('/^\d{1,3}$/', $range)) {
-								continue;
-							} elseif ($range < 1 || $range > 128) {
-								continue;
-							}
-						} else {
-							continue;
-						}
-					} elseif (!filter_var(str_replace('*', '0', $part), \FILTER_VALIDATE_IP)) {
-						continue;
-					}
-
-					$list[] = $part;
-				}
-
-				$backend_ip_blacklist = implode(';', $list);
-			} else {
-				if (!filter_var(str_replace('*', '0', $backend_ip_blacklist), \FILTER_VALIDATE_IP, \FILTER_FLAG_NO_PRIV_RANGE | \FILTER_FLAG_NO_RES_RANGE)) {
-					$backend_ip_blacklist = '';
-				}
-			}
+			$backend_ip_blacklist = $this->sanitize_array($backend_ip_blacklist);
 		}
 
-		$result = $this->get_location($this->get_ip());
+		$result = $this->get_location($this->ip());
 		$my_country_code = $result['country_code'];
 		$my_country_name = $result['country_name'];
 
-		if (isset($_POST['reset'])) {
-			$GLOBALS['wpdb']->query('TRUNCATE TABLE ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_backend_rate_limit_log');
+		if ($this->post('reset')) {
+			$this->wpdb_query('TRUNCATE TABLE ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_backend_rate_limit_log');
 
 			$frontend_status = '
 				<div class="updated">
-					<p>' . __('Backend auto blacklist log has been reset.', 'ip2location-country-blocker') . '</p>
+					<p>' . __('Backend blacklist log has been reset.', 'ip2location-country-blocker') . '</p>
 				</div>';
 		}
 
-		if (isset($_POST['submit'])) {
-			check_admin_referer('save-backend');
-
-			if (!isset($_POST['backend_block_proxy_type'])) {
-				$backend_block_proxy_type = '';
-			}
+		if ($this->post('submit')) {
+			check_admin_referer('save_backend');
 
 			if (!empty($backend_auto_block_threshold) && !preg_match('/^[0-9]+$/', $backend_auto_block_threshold)) {
 				$backend_status = '
@@ -726,22 +561,22 @@ class IP2LocationCountryBlocker
 					}
 				}
 
-				update_option('ip2location_country_blocker_backend_enabled', $enable_backend);
-				update_option('ip2location_country_blocker_backend_block_mode', $backend_block_mode);
-				update_option('ip2location_country_blocker_backend_banlist', $backend_ban_list);
-				update_option('ip2location_country_blocker_backend_option', $backend_option);
-				update_option('ip2location_country_blocker_backend_redirect_url', $backend_redirect_url);
-				update_option('ip2location_country_blocker_backend_error_page', $backend_error_page);
-				update_option('ip2location_country_blocker_bypass_code', $bypass_code);
-				update_option('ip2location_country_blocker_backend_ip_blacklist', $backend_ip_blacklist);
-				update_option('ip2location_country_blocker_backend_auto_block_threshold', $backend_auto_block_threshold);
-				update_option('ip2location_country_blocker_backend_ip_whitelist', $backend_ip_whitelist);
-				update_option('ip2location_country_blocker_backend_skip_bots', $backend_skip_bots);
-				update_option('ip2location_country_blocker_backend_bots_list', $backend_bots_list);
-				update_option('ip2location_country_blocker_backend_block_proxy', $backend_block_proxy);
-				update_option('ip2location_country_blocker_backend_block_proxy_type', $backend_block_proxy_type);
-				update_option('ip2location_country_blocker_access_email_notification', $access_email_notification);
-				update_option('ip2location_country_blocker_email_notification', $email_notification);
+				$this->update_option('backend_enabled', $enable_backend);
+				$this->update_option('backend_block_mode', $backend_block_mode);
+				$this->update_option('backend_banlist', $backend_ban_list);
+				$this->update_option('backend_option', $backend_option);
+				$this->update_option('backend_redirect_url', $backend_redirect_url);
+				$this->update_option('backend_error_page', $backend_error_page);
+				$this->update_option('bypass_code', $bypass_code);
+				$this->update_option('backend_ip_blacklist', $backend_ip_blacklist);
+				$this->update_option('backend_auto_block_threshold', $backend_auto_block_threshold);
+				$this->update_option('backend_ip_whitelist', $backend_ip_whitelist);
+				$this->update_option('backend_skip_bots', $backend_skip_bots);
+				$this->update_option('backend_bots_list', $backend_bots_list);
+				$this->update_option('backend_block_proxy', $backend_block_proxy);
+				$this->update_option('backend_block_proxy_type', $backend_block_proxy_type);
+				$this->update_option('access_email_notification', $access_email_notification);
+				$this->update_option('email_notification', $email_notification);
 
 				if ($backend_auto_block_threshold) {
 					$this->create_table();
@@ -755,7 +590,7 @@ class IP2LocationCountryBlocker
 			}
 		}
 
-		if (get_option('ip2location_country_blocker_lookup_mode') == 'bin' && !is_file(IP2LOCATION_DIR . get_option('ip2location_country_blocker_database'))) {
+		if ($this->get_option('lookup_mode') == 'bin' && !is_file(IP2LOCATION_DIR . $this->get_option('database'))) {
 			$backend_status .= '
 			<div class="error">
 				<p>' . sprintf(__('%1$sERROR:%2$s Unable to find the IP2Location BIN database! Please download the database at at %3$sIP2Location commercial database%4$s | %5$sIP2Location LITE database (free edition)%6$s.', 'ip2location-country-blocker'), '<strong>', '</strong>', '<a href="https://www.ip2location.com/?r=wordpress" target="_blank">', '</a>', '<a href="https://lite.ip2location.com/?r=wordpress" target="_blank">', '</a>') . '</p>
@@ -769,7 +604,7 @@ class IP2LocationCountryBlocker
 			' . $backend_status . '
 
 			<form id="form_backend_settings" method="post" novalidate="novalidate">
-				' . wp_nonce_field('save-backend') . '
+				' . wp_nonce_field('save_backend') . '
 				<input type="hidden" name="my_country_code" id="my_country_code" value="' . esc_attr($my_country_code) . '" />
 				<input type="hidden" name="my_country_name" id="my_country_name" value="' . esc_attr($my_country_name) . '" />
 				<div style="margin-top:20px;">
@@ -780,221 +615,219 @@ class IP2LocationCountryBlocker
 				</div>
 
 				<div class="postbox" style="margin-top:20px;padding-left:15px;padding-right:15px;padding-bottom:20px;">
-				<table class="form-table" style="margin-left:20px;">
 					<h2 class="title" style="padding-bottom:5px">' . __('Block By Country', 'ip2location-country-blocker') . '</h2>
-					<tr>
-						<th scope="row">
-							<label>' . __('Block by country', 'ip2location-country-blocker') . '</label>
-						</th>
-						<td>
-							<fieldset>
-								<legend class="screen-reader-text"><span>Blocking Mode</span></legend>
-								<label><input type="radio" name="backend_block_mode" value="1"' . (($backend_block_mode == 1) ? ' checked' : '') . ' class="input-field" /> ' . __('Block countries listed below.', 'ip2location-country-blocker') . '</label><br />
-								<label><input type="radio" name="backend_block_mode" value="2"' . (($backend_block_mode == 2) ? ' checked' : '') . ' class="input-field" /> ' . sprintf(__('Block all countries %1$sexcept%2$s countries listed below.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</label>
-							</fieldset>
 
-							<select name="backend_ban_list[]" id="backend_ban_list" data-placeholder="Choose Country..." multiple="true" class="chosen input-field">';
+					<table class="form-table" style="margin-left:20px;">
+						<tr>
+							<th scope="row">
+								<label>' . __('Block by country', 'ip2location-country-blocker') . '</label>
+							</th>
+							<td>
+								<fieldset>
+									<legend class="screen-reader-text"><span>Blocking Mode</span></legend>
+									<label><input type="radio" name="backend_block_mode" value="1"' . (($backend_block_mode == 1) ? ' checked' : '') . ' class="input-field" /> ' . __('Block countries listed below.', 'ip2location-country-blocker') . '</label><br />
+									<label><input type="radio" name="backend_block_mode" value="2"' . (($backend_block_mode == 2) ? ' checked' : '') . ' class="input-field" /> ' . sprintf(__('Block all countries %1$sexcept%2$s countries listed below.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</label>
+								</fieldset>
 
-		foreach ($this->country_groups as $group_name => $countries) {
-			echo '
-									<option value="' . esc_attr($group_name) . '"' . (($this->is_in_array($group_name, $backend_ban_list)) ? ' selected' : '') . '> ' . esc_html($group_name) . ' Countries</option>';
-		}
+								<select name="backend_ban_list[]" id="backend_ban_list" data-placeholder="Choose Country..." multiple="true" class="chosen input-field">';
+									foreach ($this->country_groups as $group_name => $countries) {
+										echo '
+										<option value="' . esc_attr($group_name) . '"' . (($this->is_in_array($group_name, $backend_ban_list)) ? ' selected' : '') . '> ' . esc_html($group_name) . ' Countries</option>';
+									}
 
-		foreach ($this->countries as $country_code => $country_name) {
-			echo '
-									<option value="' . esc_attr($country_code) . '"' . (($this->is_in_array($country_code, $backend_ban_list)) ? ' selected' : '') . '> ' . esc_html($country_name) . '</option>';
-		}
+									foreach ($this->countries as $country_code => $country_name) {
+										echo '
+										<option value="' . esc_attr($country_code) . '"' . (($this->is_in_array($country_code, $backend_ban_list)) ? ' selected' : '') . '> ' . esc_html($country_name) . '</option>';
+									}
 
-		echo '
-							</select>
+									echo '
+								</select>
 
-							<p>' . sprintf(__('%1$sNote:%2$s For EU, APAC and other country groupings, please visit %3$sGeoDataSource Country Grouping Terminology%4$s for details.', 'ip2location-country-blocker'), '<strong>', '</strong>', '<a href="https://github.com/geodatasource/country-grouping-terminology" target="_blank">', '</a>') . '</p>
-						</td>
-					</tr>
-				</table>
+								<p>' . sprintf(__('%1$sNote:%2$s For EU, APAC and other country groupings, please visit %3$sGeoDataSource Country Grouping Terminology%4$s for details.', 'ip2location-country-blocker'), '<strong>', '</strong>', '<a href="https://github.com/geodatasource/country-grouping-terminology" target="_blank">', '</a>') . '</p>
+							</td>
+						</tr>
+					</table>
 				</div>
 
 				<div class="postbox" style="margin-top:20px;padding-left:15px;padding-right:15px;padding-bottom:20px;">
-				<table class="form-table" style="margin-left:20px;">
 					<h2 class="title" style="padding-bottom:5px">' . __('Block By Proxy', 'ip2location-country-blocker') . '</h2>
-					<tr>
-						<th scope="row">
-							<label>' . __('Block by proxy IP', 'ip2location-country-blocker') . '</label>
-						</th>
-						<td>
-							<label for="backend_block_proxy">
-								<input type="checkbox" name="backend_block_proxy" id="backend_block_proxy"' . (($backend_block_proxy) ? ' checked' : '') . ' class="input-field">
-								' . __('Block proxy IP.', 'ip2location-country-blocker') . '
-							</label>
-							<p class="description">
-								' . __('IP2Proxy Lookup Mode is required for this option. You can enable/disable the IP2Proxy Lookup Mode at the Settings tab.', 'ip2location-country-blocker') . '
-							</p>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row">
-							<label>' . __('Block by proxy type', 'ip2location-country-blocker') . '</label>
-						</th>
-						<td>
-							<label for="backend_block_proxy_type">
-								' . __('Block following proxy type.', 'ip2location-country-blocker') . '
-							</label>
-							<div style="margin-top:10px">
-								<select name="backend_block_proxy_type[]" id="backend_block_proxy_type" data-placeholder="Choose Proxy Type..." multiple="true" class="chosen input-field">';
 
-		foreach ($this->proxy_types as $proxy_type) {
-			echo '
-										<option value="' . esc_attr($proxy_type) . '"' . (($this->is_in_array($proxy_type, $backend_block_proxy_type)) ? ' selected' : '') . '> ' . esc_html($proxy_type) . '</option>';
-		}
+					<table class="form-table" style="margin-left:20px;">
+						<tr>
+							<th scope="row">
+								<label>' . __('Block by proxy IP', 'ip2location-country-blocker') . '</label>
+							</th>
+							<td>
+								<label for="backend_block_proxy">
+									<input type="checkbox" name="backend_block_proxy" id="backend_block_proxy"' . (($backend_block_proxy) ? ' checked' : '') . ' class="input-field">
+									' . __('Block proxy IP.', 'ip2location-country-blocker') . '
+								</label>
+								<p class="description">
+									' . __('IP2Proxy Lookup Mode is required for this option. You can enable/disable the IP2Proxy Lookup Mode at the Settings tab.', 'ip2location-country-blocker') . '
+								</p>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">
+								<label>' . __('Block by proxy type', 'ip2location-country-blocker') . '</label>
+							</th>
+							<td>
+								<label for="backend_block_proxy_type">
+									' . __('Block following proxy type.', 'ip2location-country-blocker') . '
+								</label>
+								<div style="margin-top:10px">
+									<select name="backend_block_proxy_type[]" id="backend_block_proxy_type" data-placeholder="Choose Proxy Type..." multiple="true" class="chosen input-field">';
+										foreach ($this->proxy_types as $proxy_type) {
+											echo '
+											<option value="' . esc_attr($proxy_type) . '"' . (($this->is_in_array($proxy_type, $backend_block_proxy_type)) ? ' selected' : '') . '> ' . esc_html($proxy_type) . '</option>';
+										}
 
-		echo '
+										echo '
+									</select>
+
+									<p class="description">
+										' . sprintf(__('This feature only works with %1$sIP2Proxy Commercial%2$s database.', 'ip2location-country-blocker'), '<a href="https://www.ip2location.com/database/ip2proxy#wordpress-wzdicb" target="_blank">', '</a>') . '
+									</p>
+								</div>
+							</td>
+						</tr>
+					</table>
+				</div>
+
+				<div class="postbox" style="margin-top:20px;padding-left:15px;padding-right:15px;padding-bottom:20px;">
+					<h2 class="title" style="padding-bottom:5px">' . __('Other Settings', 'ip2location-country-blocker') . '</h2>
+
+					<table class="form-table" style="margin-left:20px;">
+						<tr>
+							<th scope="row">
+								<label>' . __('Block by bot', 'ip2location-country-blocker') . '</label>
+							</th>
+							<td>
+								<label for="backend_skip_bots">
+									<input type="checkbox" name="backend_skip_bots" id="backend_skip_bots"' . (($backend_skip_bots) ? ' checked' : '') . ' class="input-field">
+									' . __('Do not block the below bots and crawlers.', 'ip2location-country-blocker') . '
+								</label>
+								<div style="margin-top:10px">
+									<select name="backend_bots_list[]" id="backend_bots_list" data-placeholder="Choose Robot..." multiple="true" class="chosen input-field">';
+										foreach ($this->robots as $robot_code => $robot_name) {
+											echo '
+											<option value="' . esc_attr($robot_code) . '"' . (($this->is_in_array($robot_code, $backend_bots_list)) ? ' selected' : '') . '> ' . esc_html($robot_name) . '</option>';
+										}
+
+										echo '
+									</select>
+								</div>
+							</td>
+						</tr>
+
+						<tr>
+							<th scope="row">
+								<label>' . __('Display page when visitor is blocked', 'ip2location-country-blocker') . '</label>
+							</th>
+							<td>
+								<p>
+									<strong>' . __('Show the following page when a visitor is blocked.', 'ip2location-country-blocker') . '</strong>
+								</p>
+
+								<fieldset>
+									<legend class="screen-reader-text"><span>' . __('Error Option', 'ip2location-country-blocker') . '</span></legend>
+
+									<label>
+										<input type="radio" name="backend_option" id="backend_option_1" value="1"' . (($backend_option == 1) ? ' checked' : '') . ' class="input-field">
+										' . __('Default Error 403 Page', 'ip2location-country-blocker') . '
+									</label>
+									<br />
+									<label>
+										<input type="radio" name="backend_option" id="backend_option_2" value="2"' . (($backend_option == 2) ? ' checked' : '') . ' class="input-field">
+										' . __('Custom Error Page: ', 'ip2location-country-blocker') . '
+										<select name="backend_error_page" id="backend_error_page" class="input-field">';
+											$pages = get_pages(['post_status' => 'publish,private']);
+
+											foreach ($pages as $page) {
+												echo '
+												<option value="' . esc_attr($page->guid) . '"' . (($backend_error_page == $page->guid) ? ' selected' : '') . '>' . esc_html($page->post_title) . '</option>';
+											}
+
+											echo '
+										</select>
+									</label>
+									<br />
+									<label>
+										<input type="radio" name="backend_option" id="backend_option_3" value="3"' . (($backend_option == 3) ? ' checked' : '') . ' class="input-field">
+										' . __('URL: ', 'ip2location-country-blocker') . '
+										<input type="text" name="backend_redirect_url" id="backend_redirect_url" value="' . esc_attr($backend_redirect_url) . '" class="regular-text code input-field" />
+									</label>
+								</fieldset>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">
+								<label>' . __('Secret code to bypass blocking (Max 20 characters)', 'ip2location-country-blocker') . '</label>
+							</th>
+							<td>
+								<input type="text" name="bypass_code" id="bypass_code" maxlength="20" value="' . esc_attr($bypass_code) . '" class="regular-text code input-field" />
+								<p class="description">
+									' . sprintf(__('This is the secret code used to bypass all blockings to backend pages. It take precedence over all block settings configured. To bypass, you just need to append the %1$ssecret_code%2$s parameter with above value to the wp-login.php page. For example, https://www.example.com/wp-login.php%3$s?secret_code=1234567%4$s. If you add in %5s&action=emergency_stop%6s, both frontend and backend blocking will be disabled immediately.', 'ip2location-country-blocker'), '<strong>', '</strong>', '<code>', '</code>', '<code>', '</code>') . '
+								</p>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">
+								<label>' . __('Blacklist IP addresses', 'ip2location-country-blocker') . '</label>
+							</th>
+							<td>
+								<fieldset>
+									<legend class="screen-reader-text"><span>' . __('Blacklist', 'ip2location-country-blocker') . '</span></legend>
+									<input type="text" name="backend_ip_blacklist" id="backend_ip_blacklist" value="' . esc_attr($backend_ip_blacklist) . '" class="regular-text ip-address-list" />
+									<p class="description">' . __('Use asterisk (*) for wildcard matching. E.g.: 8.8.8.* will match IP from 8.8.8.0 to 8.8.8.255. CIDR format also supported.', 'ip2location-country-blocker') . '</p>
+								</fieldset>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">
+								<label>' . __('Automatic Blacklist', 'ip2location-country-blocker') . '</label>
+							</th>
+							<td>
+								<input type="text" name="backend_auto_block_threshold" id="backend_auto_block_threshold" maxlength="20" placeholder="100" value="' . esc_attr($backend_auto_block_threshold) . '" class="regular-text code input-field" />
+								<a href="javascript:;" id="link-reset">Reset</a>
+								<p class="description">' . __('Automatically add client IP into blacklist if client keep hitting admin area more than this threshold within 24 hours.', 'ip2location-country-blocker') . '</p>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">
+								<label>' . __('Whitelist IP addresses', 'ip2location-country-blocker') . '</label>
+							</th>
+							<td>
+								<fieldset>
+									<legend class="screen-reader-text"><span>' . __('Blacklist', 'ip2location-country-blocker') . '</span></legend>
+									<input type="text" name="backend_ip_whitelist" id="backend_ip_whitelist" value="' . esc_attr($backend_ip_whitelist) . '" class="regular-text ip-address-list" />
+									<p class="description">' . __('Use asterisk (*) for wildcard matching. E.g.: 8.8.8.* will match IP from 8.8.8.0 to 8.8.8.255. CIDR format also supported.', 'ip2location-country-blocker') . '</p>
+								</fieldset>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">
+								<label for="email_notification">' . __('Email Notification', 'ip2location-country-blocker') . '</label>
+							</th>
+							<td>
+								<select name="email_notification">
+									<option value="none"> ' . __('None', 'ip2location-country-blocker') . '</option>';
+										$users = get_users(['role' => 'administrator']);
+
+										foreach ($users as $user) {
+											echo '
+											<option value="' . esc_attr($user->user_email) . '"' . (($user->user_email == $email_notification) ? ' selected' : '') . '>' . esc_html($user->display_name) . '</option>';
+										}
+
+										echo '
 								</select>
 
 								<p class="description">
-									' . sprintf(__('This feature only works with %1$sIP2Proxy Commercial%2$s database.', 'ip2location-country-blocker'), '<a href="https://www.ip2location.com/database/ip2proxy#wordpress-wzdicb" target="_blank">', '</a>') . '
+									' . __('Send email notification to selected recipient when a visitor is blocked.', 'ip2location-country-blocker') . '
 								</p>
-							</div>
-						</td>
-					</tr>
-				</table>
-				</div>
-
-				<div class="postbox" style="margin-top:20px;padding-left:15px;padding-right:15px;padding-bottom:20px;">
-				<table class="form-table" style="margin-left:20px;">
-					<h2 class="title" style="padding-bottom:5px">' . __('Other Settings', 'ip2location-country-blocker') . '</h2>
-					<tr>
-						<th scope="row">
-							<label>' . __('Block by bot', 'ip2location-country-blocker') . '</label>
-						</th>
-						<td>
-							<label for="backend_skip_bots">
-								<input type="checkbox" name="backend_skip_bots" id="backend_skip_bots"' . (($backend_skip_bots) ? ' checked' : '') . ' class="input-field">
-								' . __('Do not block the below bots and crawlers.', 'ip2location-country-blocker') . '
-							</label>
-							<div style="margin-top:10px">
-								<select name="backend_bots_list[]" id="backend_bots_list" data-placeholder="Choose Robot..." multiple="true" class="chosen input-field">';
-
-		foreach ($this->robots as $robot_code => $robot_name) {
-			echo '
-										<option value="' . esc_attr($robot_code) . '"' . (($this->is_in_array($robot_code, $backend_bots_list)) ? ' selected' : '') . '> ' . esc_html($robot_name) . '</option>';
-		}
-
-		echo '
-								</select>
-							</div>
-						</td>
-					</tr>
-
-					<tr>
-						<th scope="row">
-							<label>' . __('Display page when visitor is blocked', 'ip2location-country-blocker') . '</label>
-						</th>
-						<td>
-							<p>
-								<strong>' . __('Show the following page when a visitor is blocked.', 'ip2location-country-blocker') . '</strong>
-							</p>
-
-							<fieldset>
-								<legend class="screen-reader-text"><span>' . __('Error Option', 'ip2location-country-blocker') . '</span></legend>
-
-								<label>
-									<input type="radio" name="backend_option" id="backend_option_1" value="1"' . (($backend_option == 1) ? ' checked' : '') . ' class="input-field">
-									' . __('Default Error 403 Page', 'ip2location-country-blocker') . '
-								</label>
-								<br />
-								<label>
-									<input type="radio" name="backend_option" id="backend_option_2" value="2"' . (($backend_option == 2) ? ' checked' : '') . ' class="input-field">
-									' . __('Custom Error Page: ', 'ip2location-country-blocker') . '
-									<select name="backend_error_page" id="backend_error_page" class="input-field">';
-
-		$pages = get_pages(['post_status' => 'publish,private']);
-
-		foreach ($pages as $page) {
-			echo '
-										<option value="' . esc_attr($page->guid) . '"' . (($backend_error_page == $page->guid) ? ' selected' : '') . '>' . esc_html($page->post_title) . '</option>';
-		}
-
-		echo '
-									</select>
-								</label>
-								<br />
-								<label>
-									<input type="radio" name="backend_option" id="backend_option_3" value="3"' . (($backend_option == 3) ? ' checked' : '') . ' class="input-field">
-									' . __('URL: ', 'ip2location-country-blocker') . '
-									<input type="text" name="backend_redirect_url" id="backend_redirect_url" value="' . esc_attr($backend_redirect_url) . '" class="regular-text code input-field" />
-								</label>
-							</fieldset>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row">
-							<label>' . __('Secret code to bypass blocking (Max 20 characters)', 'ip2location-country-blocker') . '</label>
-						</th>
-						<td>
-							<input type="text" name="bypass_code" id="bypass_code" maxlength="20" value="' . esc_attr($bypass_code) . '" class="regular-text code input-field" />
-							<p class="description">
-								' . sprintf(__('This is the secret code used to bypass all blockings to backend pages. It take precedence over all block settings configured. To bypass, you just need to append the %1$ssecret_code%2$s parameter with above value to the wp-login.php page. For example, https://www.example.com/wp-login.php%3$s?secret_code=1234567%4$s. If you add in %5s&action=emergency_stop%6s, both frontend and backend blocking will be disabled immediately.', 'ip2location-country-blocker'), '<strong>', '</strong>', '<code>', '</code>', '<code>', '</code>') . '
-							</p>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row">
-							<label>' . __('Blacklist IP addresses', 'ip2location-country-blocker') . '</label>
-						</th>
-						<td>
-							<fieldset>
-								<legend class="screen-reader-text"><span>' . __('Blacklist', 'ip2location-country-blocker') . '</span></legend>
-								<input type="text" name="backend_ip_blacklist" id="backend_ip_blacklist" value="' . esc_attr($backend_ip_blacklist) . '" class="regular-text ip-address-list" />
-								<p class="description">' . __('Use asterisk (*) for wildcard matching. E.g.: 8.8.8.* will match IP from 8.8.8.0 to 8.8.8.255. CIDR format also supported.', 'ip2location-country-blocker') . '</p>
-							</fieldset>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row">
-							<label>' . __('Automatic Blacklist', 'ip2location-country-blocker') . '</label>
-						</th>
-						<td>
-							<input type="text" name="backend_auto_block_threshold" id="backend_auto_block_threshold" maxlength="20" placeholder="100" value="' . esc_attr($backend_auto_block_threshold) . '" class="regular-text code input-field" />
-							<a href="javascript:;" id="link-reset">Reset</a>
-							<p class="description">' . __('Automatically add client IP into blacklist if client keep hitting admin area more than this threshold within 24 hours.', 'ip2location-country-blocker') . '</p>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row">
-							<label>' . __('Whitelist IP addresses', 'ip2location-country-blocker') . '</label>
-						</th>
-						<td>
-							<fieldset>
-								<legend class="screen-reader-text"><span>' . __('Blacklist', 'ip2location-country-blocker') . '</span></legend>
-								<input type="text" name="backend_ip_whitelist" id="backend_ip_whitelist" value="' . esc_attr($backend_ip_whitelist) . '" class="regular-text ip-address-list" />
-								<p class="description">' . __('Use asterisk (*) for wildcard matching. E.g.: 8.8.8.* will match IP from 8.8.8.0 to 8.8.8.255. CIDR format also supported.', 'ip2location-country-blocker') . '</p>
-							</fieldset>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row">
-							<label for="email_notification">' . __('Email Notification', 'ip2location-country-blocker') . '</label>
-						</th>
-						<td>
-							<select name="email_notification">
-								<option value="none"> ' . __('None', 'ip2location-country-blocker') . '</option>';
-
-		$users = get_users(['role' => 'administrator']);
-
-		foreach ($users as $user) {
-			echo '
-									<option value="' . esc_attr($user->user_email) . '"' . (($user->user_email == $email_notification) ? ' selected' : '') . '>' . esc_html($user->display_name) . '</option>';
-		}
-
-		echo '
-							</select>
-
-							<p class="description">
-								' . __('Send email notification to selected recipient when a visitor is blocked.', 'ip2location-country-blocker') . '
-							</p>
-						</td>
-					</tr>
-				</table>
+							</td>
+						</tr>
+					</table>
 				</div>
 
 				<p class="submit">
@@ -1002,7 +835,7 @@ class IP2LocationCountryBlocker
 				</p>
 			</form>
 			<div class="clear"></div>
-			<input type="hidden" id="support_proxy" value="' . ((get_option('ip2location_country_blocker_px_lookup_mode')) ? 1 : 0) . '">
+			<input type="hidden" id="support_proxy" value="' . (($this->get_option('px_lookup_mode')) ? 1 : 0) . '">
 		</div>';
 	}
 
@@ -1012,17 +845,16 @@ class IP2LocationCountryBlocker
 			return $this->settings_page();
 		}
 
-		if (isset($_POST['purge'])) {
-			check_admin_referer('purge-logs');
+		if ($this->post('purge')) {
+			check_admin_referer('purge_logs');
 
-			$GLOBALS['wpdb']->query('TRUNCATE TABLE ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_log');
+			$this->wpdb_query('TRUNCATE TABLE ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_log');
 		}
 
 		// Remove logs older than 30 days.
-		$GLOBALS['wpdb']->query('DELETE FROM ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_log WHERE date_created <="' . date('Y-m-d H:i:s', strtotime('-30 days')) . '"');
-
-		// Prepare logs for last 30 days.
-		$results = $GLOBALS['wpdb']->get_results('SELECT DATE_FORMAT(date_created, "%Y-%m-%d") AS date, side, COUNT(*) AS total FROM ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_log GROUP BY date, side ORDER BY date', OBJECT);
+		$this->wpdb_query('DELETE FROM ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_log WHERE date_created <= %s',
+			[date('Y-m-d H:i:s', strtotime('-30 days'))]
+		);
 
 		$lines = [];
 		for ($d = 30; $d > 0; --$d) {
@@ -1030,8 +862,13 @@ class IP2LocationCountryBlocker
 			$lines[date('Y-m-d', strtotime('-' . $d . ' days'))][2] = 0;
 		}
 
-		foreach ($results as $result) {
-			$lines[$result->date][$result->side] = $result->total;
+		// Prepare logs for last 30 days.
+		$results = $this->wpdb_get_results('SELECT DATE_FORMAT(date_created, "%Y-%m-%d") AS date, side, COUNT(*) AS total FROM ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_log GROUP BY date, side ORDER BY date');
+
+		if (!empty($results)) {
+			foreach ($results as $result) {
+				$lines[$result->date][$result->side] = $result->total;
+			}
 		}
 
 		ksort($lines);
@@ -1042,55 +879,54 @@ class IP2LocationCountryBlocker
 
 		foreach ($lines as $date => $value) {
 			$labels[] = $date;
-			$frontend_access[] = (isset($value[1])) ? $value[1] : 0;
-			$backend_access[] = (isset($value[2])) ? $value[2] : 0;
+			$frontend_access[] = $value[1] ?? 0;
+			$backend_access[] = $value[2] ?? 0;
 		}
 
 		$frontends = ['countries' => [], 'colors' => [], 'totals' => []];
 		$backends = ['countries' => [], 'colors' => [], 'totals' => []];
 
 		// Prepare blocked countries.
-		$results = $GLOBALS['wpdb']->get_results('SELECT side,country_code, COUNT(*) AS total FROM ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_log GROUP BY country_code, side ORDER BY total DESC;', OBJECT);
+		$results = $this->wpdb_get_results('SELECT side, country_code, COUNT(*) AS total FROM ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_log GROUP BY country_code, side ORDER BY total DESC');
 
 		foreach ($results as $result) {
 			if ($result->side == 1) {
-				$frontends['countries'][] = addslashes($this->get_country_name($result->country_code));
+				$frontends['countries'][] = $this->get_country_name($result->country_code);
 				$frontends['colors'][] = 'get_color()';
 				$frontends['totals'][] = $result->total;
 			} else {
-				$backends['countries'][] = addslashes($this->get_country_name($result->country_code));
+				$backends['countries'][] = $this->get_country_name($result->country_code);
 				$backends['colors'][] = 'get_color()';
 				$backends['totals'][] = $result->total;
 			}
 		}
 
-		// Add index to table id not exist.
-		$results = $GLOBALS['wpdb']->get_results('SELECT COUNT(*) AS total FROM information_schema.statistics WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = "' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_log" AND INDEX_NAME = "idx_ip_address"', OBJECT);
-
 		if ($results[0]->total == 0) {
-			$GLOBALS['wpdb']->query('ALTER TABLE `' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_log` ADD INDEX `idx_ip_address` (`ip_address`);');
+			$this->wpdb_query('ALTER TABLE `' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_log` ADD INDEX `idx_ip_address` (`ip_address`)');
 		}
 
 		echo '
 		<div class="wrap">
 			<h1>' . __('Statistics (Past 30 Days)', 'ip2location-country-blocker') . '</h1>
 
-			' . ((get_option('ip2location_country_blocker_log_enabled')) ? '' : '<div class="update-message notice inline notice-warning notice-alt">' . sprintf(__('Visitor log is disabled. Please enable it in %1$sSettings%2$s page to collect statistics data.', 'ip2location-country-blocker'), '<a href="admin.php?page=ip2location-country-blocker-settings">', '</a>') . '</div>') . '
+			' . (($this->get_option('log_enabled')) ? '' : '<div class="update-message notice inline notice-warning notice-alt">' . sprintf(__('Visitor log is disabled. Please enable it in %1$sSettings%2$s page to collect statistics data.', 'ip2location-country-blocker'), '<a href="admin.php?page=ip2location-country-blocker-settings">', '</a>') . '</div>') . '
 
 			<p>
 				<canvas id="line_chart" style="width:100%;height:400px"></canvas>
 			</p>
 
 			<p>
-				<div style="float:left;width:400px;margin-right:30px">
+				<div style="float:left;width:400px;margin-right:150px">
 					<h3>' . __('Frontend', 'ip2location-country-blocker') . '</h3>';
 
-		if (empty($frontends['countries'])) {
-			echo '
+					if (empty($frontends['countries'])) {
+						echo '
 						<div style="border:1px solid #E1E1E1;padding:10px;background-color:#fff">' . __('No data available.', 'ip2location-country-blocker') . '</div>';
-		} else {
-			echo '
-						<canvas id="pie_chart_frontend" style="width:100%;height:300px"></canvas>
+					} else {
+						echo '
+						<div style="width:350px">
+							<canvas id="pie_chart_frontend"></canvas>
+						</div>
 
 						<h4>' . __('Top 10 IP Address Blocked', 'ip2location-country-blocker') . '</h4>
 
@@ -1103,19 +939,20 @@ class IP2LocationCountryBlocker
 								</tr>
 							</thead>
 							<tbody>';
+								$results = $this->wpdb_get_results('SELECT ip_address, country_code, COUNT(*) AS total FROM ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_log WHERE side = "1" GROUP BY ip_address ORDER BY total DESC LIMIT 10');
 
-			$results = $GLOBALS['wpdb']->get_results('SELECT ip_address, country_code, COUNT(*) AS total FROM ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_log WHERE side = "1" GROUP BY ip_address ORDER BY total DESC LIMIT 10;', OBJECT);
+								if (!empty($results)) {
+									foreach ($results as $result) {
+										echo '
+										<tr>
+											<td>' . esc_html($result->ip_address) . '</td>
+											<td align="center">' . esc_html($result->country_code) . '</td>
+											<td align="right">' . esc_html($result->total) . '</td>
+										</tr>';
+									}
+								}
 
-			foreach ($results as $result) {
-				echo '
-									<tr>
-										<td>' . esc_html($result->ip_address) . '</td>
-										<td align="center">' . esc_html($result->country_code) . '</td>
-										<td align="right">' . esc_html($result->total) . '</td>
-									</tr>';
-			}
-
-			echo '
+								echo '
 							</tbody>
 						</table>';
 		}
@@ -1126,12 +963,14 @@ class IP2LocationCountryBlocker
 				<div style="float:left;width:400px">
 					<h3>' . __('Backend', 'ip2location-country-blocker') . '</h3>';
 
-		if (empty($backends['countries'])) {
-			echo '
+					if (empty($backends['countries'])) {
+						echo '
 						<div style="border:1px solid #E1E1E1;padding:10px;background-color:#fff">' . __('No data available.', 'ip2location-country-blocker') . '</div>';
-		} else {
-			echo '
-						<canvas id="pie_chart_backend" style="width:100%;height:300px"></canvas>
+					} else {
+						echo '
+						<div style="width:350px">
+							<canvas id="pie_chart_backend"></canvas>
+						</div>
 
 						<h4>Top 10 IP Address Blocked</h4>
 
@@ -1145,18 +984,18 @@ class IP2LocationCountryBlocker
 								</thead>
 								<tbody>';
 
-			$results = $GLOBALS['wpdb']->get_results('SELECT ip_address, country_code, COUNT(*) AS total FROM ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_log WHERE side = "2" GROUP BY ip_address ORDER BY total DESC LIMIT 10;', OBJECT);
+								$results = $this->wpdb_get_results('SELECT ip_address, country_code, COUNT(*) AS total FROM ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_log WHERE side = "2" GROUP BY ip_address ORDER BY total DESC LIMIT 10');
 
-			foreach ($results as $result) {
-				echo '
-							<tr>
-								<td>' . esc_html($result->ip_address) . '</td>
-								<td align="center">' . esc_html($result->country_code) . '</td>
-								<td align="right">' . esc_html($result->total) . '</td>
-							</tr>';
-			}
+								foreach ($results as $result) {
+									echo '
+									<tr>
+										<td>' . esc_html($result->ip_address) . '</td>
+										<td align="center">' . esc_html($result->country_code) . '</td>
+										<td align="right">' . esc_html($result->total) . '</td>
+									</tr>';
+								}
 
-			echo '
+								echo '
 								</tbody>
 							</table>';
 		}
@@ -1169,7 +1008,7 @@ class IP2LocationCountryBlocker
 
 			<p>
 				<form id="form-purge" method="post">
-					' . wp_nonce_field('purge-logs') . '
+					' . wp_nonce_field('purge_logs') . '
 					<input type="hidden" name="purge" value="true">
 					<input type="submit" name="submit" id="btn-purge" class="button button-primary" value="' . __('Purge All Logs', 'ip2location-country-blocker') . '" />
 				</form>
@@ -1189,14 +1028,14 @@ class IP2LocationCountryBlocker
 			var line = new Chart(ctx, {
 				type: \'line\',
 				data: {
-					labels: [\'' . implode('\', \'', $labels) . '\'],
+					labels: ' . wp_json_encode($labels) . ',
 					datasets: [{
 						label: \'Frontend\',
-						data: [' . implode(', ', $frontend_access) . '],
+						data: ' . wp_json_encode($frontend_access) . ',
 						backgroundColor: get_color()
 					}, {
 						label: \'Backend\',
-						data: [' . implode(', ', $backend_access) . '],
+						data: ' . wp_json_encode($backend_access) . ',
 						backgroundColor: get_color()
 					}]
 				},
@@ -1206,11 +1045,10 @@ class IP2LocationCountryBlocker
 						text: \'Access Blocked\'
 					},
 					scales: {
-						yAxes: [{
-							ticks: {
-								beginAtZero:true
-							}
-						}]
+						y: {
+							suggestedMin: 0,
+							suggestedMax: 10
+						}
 					}
 				}
 			});';
@@ -1221,10 +1059,10 @@ class IP2LocationCountryBlocker
 				var pie = new Chart(ctx, {
 					type: \'pie\',
 					data: {
-						labels: [\'' . implode('\', \'', $frontends['countries']) . '\'],
+						labels: ' . wp_json_encode($frontends['countries']) . ',
 						datasets: [{
-							backgroundColor: [' . implode(', ', $frontends['colors']) . '],
-							data: [' . implode(', ', $frontends['totals']) . ']
+							backgroundColor: [' . implode(',', $frontends['colors']) . '],
+							data: [' . implode(',', $frontends['totals']) . '],
 						}]
 					},
 					options: {
@@ -1242,10 +1080,10 @@ class IP2LocationCountryBlocker
 				var pie = new Chart(ctx, {
 					type: \'pie\',
 					data: {
-						labels: [\'' . implode('\', \'', $backends['countries']) . '\'],
+						labels: ' . wp_json_encode($backends['countries']) . ',
 						datasets: [{
-							backgroundColor: [' . implode(', ', $backends['colors']) . '],
-							data: [' . implode(', ', $backends['totals']) . ']
+							backgroundColor: [' . implode(',', $backends['colors']) . '],
+							data: [' . implode(',', $backends['totals']) . '],
 						}]
 					},
 					options: {
@@ -1269,11 +1107,10 @@ class IP2LocationCountryBlocker
 		}
 
 		$ip_lookup_status = '';
+		$ip_address = $this->post('ip_address', $this->ip());
 
-		$ip_address = (isset($_POST['ip_address'])) ? sanitize_text_field($_POST['ip_address']) : $this->get_ip();
-
-		if (isset($_POST['submit'])) {
-			check_admin_referer('ip-lookup');
+		if ($this->post('submit')) {
+			check_admin_referer('ip_lookup');
 
 			$this->cache_flush();
 
@@ -1293,7 +1130,7 @@ class IP2LocationCountryBlocker
 				} else {
 					$ip_lookup_status = '
 					<div class="updated">
-						<p>' . sprintf(__('IP address %1$s%2$s%3$s belongs to %4$s%5$s (%6$s)%7$s.', 'ip2location-country-blocker'), '<code>', esc_attr($ip_address), '</code>', '<strong>', $result['country_name'], $result['country_code'], '<strong>') . '</p>
+						<p>' . sprintf(__('IP address %1$s%2$s%3$s belongs to %4$s%5$s (%6$s)%7$s.', 'ip2location-country-blocker'), '<code>', esc_html($ip_address), '</code>', '<strong>', esc_html($result['country_name']), esc_html($result['country_code']), '<strong>') . '</p>
 					</div>';
 
 					if (!empty($result['is_proxy'])) {
@@ -1313,7 +1150,7 @@ class IP2LocationCountryBlocker
 			' . $ip_lookup_status . '
 
 			<form method="post" novalidate="novalidate">
-			' . wp_nonce_field('ip-lookup') . '
+				' . wp_nonce_field('ip_lookup') . '
 				<table class="form-table">
 					<tr>
 						<th scope="row"><label for="ip_address">' . __('IP Address', 'ip2location-country-blocker') . '</label></th>
@@ -1351,26 +1188,26 @@ class IP2LocationCountryBlocker
 			'HTTP_X_SUCURI_CLIENTIP',
 		];
 
-		$lookup_mode = (isset($_POST['lookup_mode'])) ? sanitize_text_field($_POST['lookup_mode']) : get_option('ip2location_country_blocker_lookup_mode');
-		$px_lookup_mode = (isset($_POST['px_lookup_mode'])) ? sanitize_text_field($_POST['px_lookup_mode']) : get_option('ip2location_country_blocker_px_lookup_mode');
-		$api_key = (isset($_POST['api_key'])) ? sanitize_text_field($_POST['api_key']) : get_option('ip2location_country_blocker_api_key');
-		$px_api_key = (isset($_POST['px_api_key'])) ? sanitize_text_field($_POST['px_api_key']) : get_option('ip2location_country_blocker_px_api_key');
-		$download_token = (isset($_POST['download_token'])) ? sanitize_text_field($_POST['download_token']) : get_option('ip2location_country_blocker_token');
-		$download_ipv4_only = (isset($_POST['lookup_mode'], $_POST['download_ipv4_only'])) ? 1 : ((isset($_POST['lookup_mode']) && !isset($_POST['download_ipv4_only'])) ? 0 : get_option('ip2location_country_blocker_download_ipv4_only'));
-		$detect_forwarder_ip = (isset($_POST['submit'], $_POST['detect_forwarder_ip'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['detect_forwarder_ip'])) ? 0 : get_option('ip2location_country_blocker_detect_forwarder_ip'));
-		$enable_log = (isset($_POST['submit'], $_POST['enable_log'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['enable_log'])) ? 0 : get_option('ip2location_country_blocker_log_enabled'));
-		$enable_debug_log = (isset($_POST['submit'], $_POST['enable_debug_log'])) ? 1 : ((isset($_POST['submit']) && !isset($_POST['enable_debug_log'])) ? 0 : get_option('ip2location_country_blocker_debug_log_enabled'));
-		$real_ip_header = (isset($_POST['real_ip_header'])) ? sanitize_text_field($_POST['real_ip_header']) : get_option('ip2location_country_blocker_real_ip_header');
+		$lookup_mode = $this->post('lookup_mode', $this->get_option('lookup_mode'));
+		$px_lookup_mode = $this->post('px_lookup_mode', $this->get_option('px_lookup_mode'));
+		$api_key = $this->post('api_key', $this->get_option('api_key'));
+		$px_api_key = $this->post('px_api_key', $this->get_option('px_api_key'));
+		$download_token = $this->post('token', $this->get_option('token'));
+		$download_ipv4_only = $this->is_checked('download_ipv4_only', $this->get_option('download_ipv4_only'));
+		$detect_forwarder_ip = $this->is_checked('detect_forwarder_ip', $this->get_option('detect_forwarder_ip'));
+		$enable_log = $this->is_checked('enable_log', $this->get_option('log_enabled'));
+		$enable_debug_log = $this->is_checked('enable_debug_log', $this->get_option('debug_log_enabled'));
+		$real_ip_header = $this->post('real_ip_header', $this->get_option('real_ip_header'));
 
 		if (!in_array($real_ip_header, array_values($real_ip_headers))) {
 			$real_ip_header = '';
 		}
 
-		if (isset($_POST['lookup_mode'])) {
+		if ($this->post('lookup_mode')) {
 			check_admin_referer('settings');
 
 			if ($lookup_mode == 'ws') {
-				if (empty($_POST['api_key'])) {
+				if (empty($api_key)) {
 					$settings_status = '
 					<div class="error">
 						<p>' . sprintf(__('%1$sERROR:%2$s Invalid IP2Location API key.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
@@ -1403,7 +1240,7 @@ class IP2LocationCountryBlocker
 									<p>' . sprintf(__('%1$sERROR:%2$s Invalid IP2Location API key.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
 								</div>';
 							} else {
-								update_option('ip2location_country_blocker_api_key', $api_key);
+								$this->update_option('api_key', $api_key);
 							}
 						}
 					} else {
@@ -1413,14 +1250,14 @@ class IP2LocationCountryBlocker
 								<p>' . sprintf(__('%1$sERROR:%2$s Invalid IP2Location API key.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
 							</div>';
 						} else {
-							update_option('ip2location_country_blocker_api_key', $api_key);
+							$this->update_option('api_key', $api_key);
 						}
 					}
 				}
 			}
 
 			if ($px_lookup_mode == 'px_ws') {
-				if (empty($_POST['px_api_key'])) {
+				if (empty($px_api_key)) {
 					$settings_status .= '
 					<div class="error">
 						' . sprintf(__('%1$sERROR:%2$s Invalid IP2Proxy API key.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
@@ -1453,7 +1290,7 @@ class IP2LocationCountryBlocker
 									<p>' . sprintf(__('%1$sERROR:%2$s Invalid IP2Proxy API key.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
 								</div>';
 							} else {
-								update_option('ip2location_country_blocker_px_api_key', $px_api_key);
+								$this->update_option('px_api_key', $px_api_key);
 							}
 						}
 					} else {
@@ -1463,7 +1300,7 @@ class IP2LocationCountryBlocker
 								<p>' . sprintf(__('%1$sERROR:%2$s Invalid IP2Proxy API key.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
 							</div>';
 						} else {
-							update_option('ip2location_country_blocker_px_api_key', $px_api_key);
+							$this->update_option('px_api_key', $px_api_key);
 						}
 					}
 				}
@@ -1479,18 +1316,18 @@ class IP2LocationCountryBlocker
 						wp_delete_file(IPLCB_ROOT . $this->debug_log);
 					}
 				} else {
-					if (!get_option('ip2location_country_blocker_private_key')) {
+					if (!$this->get_option('private_key')) {
 						add_option('ip2location_country_blocker_private_key', hash('sha256', microtime(true) . get_site_url() . get_option('admin_email')));
 					}
 				}
 
-				update_option('ip2location_country_blocker_lookup_mode', $lookup_mode);
-				update_option('ip2location_country_blocker_px_lookup_mode', $px_lookup_mode);
-				update_option('ip2location_country_blocker_token', $download_token);
-				update_option('ip2location_country_blocker_detect_forwarder_ip', $detect_forwarder_ip);
-				update_option('ip2location_country_blocker_log_enabled', $enable_log);
-				update_option('ip2location_country_blocker_debug_log_enabled', $enable_debug_log);
-				update_option('ip2location_country_blocker_real_ip_header', $real_ip_header);
+				$this->update_option('lookup_mode', $lookup_mode);
+				$this->update_option('px_lookup_mode', $px_lookup_mode);
+				$this->update_option('token', $download_token);
+				$this->update_option('detect_forwarder_ip', $detect_forwarder_ip);
+				$this->update_option('log_enabled', $enable_log);
+				$this->update_option('debug_log_enabled', $enable_debug_log);
+				$this->update_option('real_ip_header', $real_ip_header);
 
 				$settings_status = '
 				<div class="updated">
@@ -1508,13 +1345,13 @@ class IP2LocationCountryBlocker
 
 			' . $settings_status;
 
-		if (get_option('ip2location_country_blocker_session_message')) {
+		if ($this->get_option('session_message')) {
 			echo '
 			<div class="updated">
-				<p>' . get_option('ip2location_country_blocker_session_message') . '</p>
+				<p>' . $this->get_option('session_message') . '</p>
 			</div>';
 
-			update_option('ip2location_country_blocker_session_message', '');
+			$this->update_option('session_message', '');
 		}
 
 		echo '
@@ -1566,8 +1403,8 @@ class IP2LocationCountryBlocker
 												<label>' . __('Database File', 'ip2location-country-blocker') . '</label>
 											</th>
 											<td>
-												<div>' . ((!is_file(IP2LOCATION_DIR . get_option('ip2location_country_blocker_database'))) ? '<span class="dashicons dashicons-warning" title="Database file not found."></span>' : '') . get_option('ip2location_country_blocker_database') . '
-												' . ((preg_match('/LITE/', get_option('ip2location_country_blocker_database'))) ? '<p class="description">' . sprintf(__('If you are looking for high accuracy result, you should consider using the commercial version of %1$sIP2Location BIN database%2$s.', 'ip2location-country-blocker'), '<a href="https://www.ip2location.com/database/db1-ip-country#wordpress-wzdicb" target="_blank">', '</a>') . '</p>' : '') . '
+												<div>' . ((!is_file(IP2LOCATION_DIR . $this->get_option('database'))) ? '<span class="dashicons dashicons-warning" title="Database file not found."></span>' : '') . esc_html($this->get_option('database')) . '
+												' . ((preg_match('/LITE/', $this->get_option('database'))) ? '<p class="description">' . sprintf(__('If you are looking for high accuracy result, you should consider using the commercial version of %1$sIP2Location BIN database%2$s.', 'ip2location-country-blocker'), '<a href="https://www.ip2location.com/database/db1-ip-country#wordpress-wzdicb" target="_blank">', '</a>') . '</p>' : '') . '
 											</td>
 										</tr>
 										<tr>
@@ -1583,7 +1420,7 @@ class IP2LocationCountryBlocker
 												<label>' . __('Database Date', 'ip2location-country-blocker') . '</label>
 											</th>
 											<td>
-												' . (($date) ?: '-') . '
+												' . esc_html(($date) ?: '-') . '
 											</td>
 										</tr>
 										<tr>
@@ -1690,8 +1527,8 @@ class IP2LocationCountryBlocker
 												<label>Database File</label>
 											</th>
 											<td>
-												<div>' . ((!is_file(IP2LOCATION_DIR . get_option('ip2location_country_blocker_px_database'))) ? '<span class="dashicons dashicons-warning" title="Database file not found."></span>' : '') . get_option('ip2location_country_blocker_px_database') . '
-												' . ((preg_match('/LITE/', get_option('ip2location_country_blocker_px_database'))) ? '<p class="description">If you are looking for high accuracy result, you should consider using the commercial version of <a href="https://www.ip2location.com/database/px1-ip-country#wordpress-wzdicb" target="_blank">IP2Proxy BIN database</a></p>' : '') . '
+												<div>' . ((!is_file(IP2LOCATION_DIR . $this->get_option('px_database'))) ? '<span class="dashicons dashicons-warning" title="Database file not found."></span>' : '') . esc_html($this->get_option('px_database')) . '
+												' . ((preg_match('/LITE/', $this->get_option('px_database'))) ? '<p class="description">If you are looking for high accuracy result, you should consider using the commercial version of <a href="https://www.ip2location.com/database/px1-ip-country#wordpress-wzdicb" target="_blank">IP2Proxy BIN database</a></p>' : '') . '
 											</td>
 										</tr>
 										<tr>
@@ -1707,7 +1544,7 @@ class IP2LocationCountryBlocker
 												<label>Database Date</label>
 											</th>
 											<td>
-												' . (($px_date) ?: '-') . '
+												' . esc_html(($px_date) ?: '-') . '
 											</td>
 										</tr>
 										<tr>
@@ -1812,7 +1649,7 @@ class IP2LocationCountryBlocker
 							<label for="enable_debug_log">
 								<input type="checkbox" name="enable_debug_log" id="enable_debug_log" value="1"' . (($enable_debug_log == 1) ? ' checked' : '') . ' /> ' . __('Enable Debugging Log', 'ip2location-country-blocker') . '
 								<p class="description">
-									' . sprintf(__('Debug log will store under %1s.', 'ip2location-country-blocker'), IPLCB_ROOT . $this->debug_log) . '
+									' . sprintf(__('Debug log will store under "%1s".', 'ip2location-country-blocker'), IP2LOCATION_DIR . $this->debug_log) . '
 									<br>
 									<strong>For security concerns, please disable this option after completed debugging process.</strong>
 								</p>
@@ -1836,7 +1673,7 @@ class IP2LocationCountryBlocker
 								' . __('If your WordPress is installed behind a reverse proxy or load balancer, the real IP address of the visitors may not forwarded correctly and causing inaccurate country results. Use this option to override the IP detected by IP2Location.', 'ip2location-country-blocker') . '
 							</p>
 							<p class="description">
-								' . __('Detected IP: <strong>' . $this->get_ip() . '</strong>.', 'ip2location-country-blocker') . '
+								' . __('Detected IP: <strong>' . esc_html($this->ip()) . '</strong>.', 'ip2location-country-blocker') . '
 							</p>
 						</td>
 					</tr>
@@ -1856,7 +1693,7 @@ class IP2LocationCountryBlocker
 							<label>' . __('Restore', 'ip2location-country-blocker') . '</label>
 						</th>
 						<td>
-							<div id="file-restore"></div>
+							<div id="restore_file"></div>
 							<p class="description">
 								' . __('Restore settings from previous installation.', 'ip2location-country-blocker') . '
 							</p>
@@ -2146,11 +1983,11 @@ class IP2LocationCountryBlocker
 
 	public function check_block()
 	{
-		if (preg_replace('/https?:\/\//', '', $this->get_current_url()) == preg_replace('/https?:\/\//', '', (string) get_option('ip2location_country_blocker_frontend_error_page'))) {
+		if (preg_replace('/https?:\/\//', '', $this->get_current_url()) == preg_replace('/https?:\/\//', '', (string) $this->get_option('frontend_error_page'))) {
 			return;
 		}
 
-		if (preg_replace('/https?:\/\//', '', $this->get_current_url()) == preg_replace('/https?:\/\//', '', (string) get_option('ip2location_country_blocker_backend_error_page'))) {
+		if (preg_replace('/https?:\/\//', '', $this->get_current_url()) == preg_replace('/https?:\/\//', '', (string) $this->get_option('backend_error_page'))) {
 			return;
 		}
 
@@ -2171,7 +2008,7 @@ class IP2LocationCountryBlocker
 		}
 
 		// Ignore content fetcher
-		if (preg_match('/facebookexternalhit/', $this->get_user_agent())) {
+		if (preg_match('/facebookexternalhit/', $this->user_agent())) {
 			return;
 		}
 
@@ -2182,19 +2019,19 @@ class IP2LocationCountryBlocker
 
 		// Backend
 		if ($this->is_backend_page()) {
-			if (!get_option('ip2location_country_blocker_backend_enabled')) {
+			if (!$this->get_option('backend_enabled')) {
 				$this->write_debug_log('Backend blocking is disabled.');
 
 				return;
 			}
 
-			if (preg_match('/(page|post)_id=([0-9]+)/', (string) get_option('ip2location_country_blocker_backend_error_page'), $matches)) {
+			if (preg_match('/(page|post)_id=([0-9]+)/', (string) $this->get_option('backend_error_page'), $matches)) {
 				if ($this->get_current_url() == get_permalink($matches[2])) {
 					return;
 				}
 			}
 
-			$result = $this->get_location($this->get_ip());
+			$result = $this->get_location($this->ip());
 
 			if (empty($result['country_code'])) {
 				$this->write_debug_log('Cannot identify visitor country.');
@@ -2202,40 +2039,42 @@ class IP2LocationCountryBlocker
 				return;
 			}
 
-			if ($this->is_in_list($this->get_ip(), 'backend_ip_whitelist')) {
+			if ($this->in_array($this->ip(), 'backend_ip_whitelist')) {
 				$this->write_debug_log('IP is in whitelist.');
 
 				return;
 			}
 
-			if (get_option('ip2location_country_blocker_backend_skip_bots') && $this->is_bot('backend')) {
+			if ($this->get_option('backend_skip_bots') && $this->is_bot('backend')) {
 				$this->write_debug_log('Web crawler detected.');
 
 				return;
 			}
 
-			$secret_code = (isset($_GET['secret_code'])) ? sanitize_text_field($_GET['secret_code']) : (($this->cache_get($this->get_ip() . '_secret_code')) ?: md5(microtime()));
-			$action = (isset($_GET['action'])) ? sanitize_text_field($_GET['action']) : '';
+			$cached_secret_code = $this->cache_get($this->ip() . '_secret_code');
 
-			$this->cache_add($this->get_ip() . '_secret_code', $secret_code);
+			$secret_code = $this->get('secret_code', ($cached_secret_code !== null) ? $cached_secret_code : md5(microtime()));
+			$action = $this->get('action');
 
-			$bypass_code = (get_option('ip2location_country_blocker_bypass_code')) ?: md5(microtime());
+			$this->cache_add($this->ip() . '_secret_code', $secret_code);
+
+			$bypass_code = ($this->get_option('bypass_code')) ?: md5(microtime());
 
 			// Stop validation if bypass code is provided.
-			if ($bypass_code == $secret_code) {
+			if (!empty($bypass_code) && hash_equals($bypass_code, $secret_code)) {
 				$this->write_debug_log('Bypassed with secret code.');
 
 				if ($action == 'emergency_stop') {
 					$this->write_debug_log('Emergency stop.');
 
-					update_option('ip2location_country_blocker_backend_enabled', 0);
-					update_option('ip2location_country_blocker_frontend_enabled', 0);
+					$this->update_option('backend_enabled', 0);
+					$this->update_option('frontend_enabled', 0);
 				}
 
 				return;
 			}
 
-			if ($this->is_in_list($this->get_ip(), 'backend_ip_blacklist')) {
+			if ($this->in_array($this->ip(), 'backend_ip_blacklist')) {
 				$this->write_debug_log('IP is in blacklist.', 'BLOCKED');
 
 				$this->block_backend($result['country_code'], false);
@@ -2243,13 +2082,13 @@ class IP2LocationCountryBlocker
 				return;
 			}
 
-			$ban_list = get_option('ip2location_country_blocker_backend_banlist');
+			$ban_list = $this->get_option('backend_banlist');
 
 			if (is_array($ban_list)) {
 				$ban_list = $this->expand_ban_list($ban_list);
 
-				if ($this->check_list($result['country_code'], $ban_list, get_option('ip2location_country_blocker_backend_block_mode'))) {
-					$this->write_debug_log('Country ' . ((get_option('ip2location_country_blocker_backend_block_mode') == 1) ? 'is' : 'not') . ' in the list.');
+				if ($this->check_list($result['country_code'], $ban_list, $this->get_option('backend_block_mode'))) {
+					$this->write_debug_log('Country ' . (($this->get_option('backend_block_mode') == 1) ? 'is' : 'not') . ' in the list.');
 
 					$this->block_backend($result['country_code']);
 
@@ -2259,14 +2098,14 @@ class IP2LocationCountryBlocker
 				$this->write_debug_log('Access is allowed.');
 			}
 
-			if (get_option('ip2location_country_blocker_backend_block_proxy') && $result['is_proxy'] == 'YES') {
+			if ($this->get_option('backend_block_proxy') && $result['is_proxy'] == 'YES') {
 				$this->write_debug_log('IP is an anonymous proxy.', 'BLOCKED');
 				$this->block_backend($result['country_code']);
 
 				return;
 			}
 
-			$proxy_type_list = get_option('ip2location_country_blocker_backend_block_proxy_type');
+			$proxy_type_list = $this->get_option('backend_block_proxy_type');
 
 			if (is_array($proxy_type_list)) {
 				if (in_array($result['proxy_type'], $proxy_type_list)) {
@@ -2278,55 +2117,65 @@ class IP2LocationCountryBlocker
 				}
 			}
 
-			if (get_option('ip2location_country_blocker_backend_auto_block_threshold')) {
-				$GLOBALS['wpdb']->query($GLOBALS['wpdb']->prepare('INSERT INTO ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_backend_rate_limit_log(ip_address, date_created) VALUES (%s, %s)', $this->get_ip(), date('Y-m-d H:i:s')));
+			if ($this->get_option('backend_auto_block_threshold')) {
+				$this->wpdb_query('INSERT INTO ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_backend_rate_limit_log (ip_address, date_created) VALUES (%s, %s)', [
+					$this->ip(),
+					date('Y-m-d H:i:s'),
+				]);
 
-				$total = $GLOBALS['wpdb']->get_var('SELECT COUNT(*) FROM ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_backend_rate_limit_log WHERE ip_address = "' . $this->get_ip() . '" AND date_created >= "' . date('Y-m-d H:i:s', strtotime('-24 hour')) . '";');
+				$total = $this->wpdb_get_value(
+					'SELECT COUNT(*) FROM ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_backend_rate_limit_log WHERE ip_address = %s AND date_created >= %s', [
+					$this->ip(),
+					date('Y-m-d H:i:s', strtotime('-24 hour'))
+				]);
 
-				if ($total >= get_option('ip2location_country_blocker_backend_auto_block_threshold')) {
+				if ($total >= $this->get_option('backend_auto_block_threshold')) {
 					// Add client IP into blacklist
-					update_option('ip2location_country_blocker_backend_ip_blacklist', trim(get_option('ip2location_country_blocker_backend_ip_blacklist') . ';' . $this->get_ip(), ';'));
+					$this->update_option('backend_ip_blacklist', trim($this->get_option('backend_ip_blacklist') . ';' . $this->ip(), ';'));
 				}
 
-				$GLOBALS['wpdb']->query('DELETE FROM ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_backend_rate_limit_log WHERE ip_address = "' . $this->get_ip() . '" AND date_created < "' . date('Y-m-d H:i:s', strtotime('-24 hour')) . '";');
+				$this->wpdb_query('DELETE FROM ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_backend_rate_limit_log WHERE ip_address = %s AND date_created < %s', [
+					$this->ip(),
+					date('Y-m-d H:i:s', strtotime('-24 hour'))
+				]);
 			}
 		}
 
 		// Frontend
 		else {
-			if (!get_option('ip2location_country_blocker_frontend_enabled')) {
+			if (!$this->get_option('frontend_enabled')) {
 				$this->write_debug_log('Frontend blocking is disabled.');
 
 				return;
 			}
 
-			if (preg_match('/(page|post)_id=([0-9]+)/', get_option('ip2location_country_blocker_frontend_error_page'), $matches)) {
+			if (preg_match('/(page|post)_id=([0-9]+)/', $this->get_option('frontend_error_page'), $matches)) {
 				if ($this->get_current_url() == get_permalink($matches[2])) {
 					return;
 				}
 			}
 
-			if ($this->is_in_list($this->get_ip(), 'frontend_ip_whitelist')) {
+			if ($this->in_array($this->ip(), 'frontend_ip_whitelist')) {
 				$this->write_debug_log('IP is in whitelist.');
 
 				return;
 			}
 
 			if (is_user_logged_in()) {
-				if (get_option('ip2location_country_blocker_frontend_whitelist_logged_user') == false || get_option('ip2location_country_blocker_frontend_whitelist_logged_user') == 1) {
+				if ($this->get_option('frontend_whitelist_logged_user') == false || $this->get_option('frontend_whitelist_logged_user') == 1) {
 					$this->write_debug_log('User is logged in.');
 
 					return;
 				}
 			}
 
-			if (get_option('ip2location_country_blocker_frontend_skip_bots') && $this->is_bot('frontend')) {
+			if ($this->get_option('frontend_skip_bots') && $this->is_bot('frontend')) {
 				$this->write_debug_log('Web crawler detected.');
 
 				return;
 			}
 
-			$result = $this->get_location($this->get_ip());
+			$result = $this->get_location($this->ip());
 
 			if (empty($result['country_code'])) {
 				$this->write_debug_log('Unable to identify visitor country.');
@@ -2334,20 +2183,20 @@ class IP2LocationCountryBlocker
 				return;
 			}
 
-			if ($this->is_in_list($this->get_ip(), 'frontend_ip_blacklist')) {
+			if ($this->in_array($this->ip(), 'frontend_ip_blacklist')) {
 				$this->write_debug_log('IP is in blacklist', 'BLOCKED');
 				$this->block_frontend($result['country_code'], false);
 
 				return;
 			}
 
-			$ban_list = get_option('ip2location_country_blocker_frontend_banlist');
+			$ban_list = $this->get_option('frontend_banlist');
 
 			if (is_array($ban_list)) {
 				$ban_list = $this->expand_ban_list($ban_list);
 
-				if ($this->check_list($result['country_code'], $ban_list, get_option('ip2location_country_blocker_frontend_block_mode'))) {
-					$this->write_debug_log('Country ' . ((get_option('ip2location_country_blocker_frontend_block_mode') == 1) ? 'is' : 'not') . ' in the list.', 'BLOCKED');
+				if ($this->check_list($result['country_code'], $ban_list, $this->get_option('frontend_block_mode'))) {
+					$this->write_debug_log('Country ' . (($this->get_option('frontend_block_mode') == 1) ? 'is' : 'not') . ' in the list.', 'BLOCKED');
 					$this->block_frontend($result['country_code']);
 
 					return;
@@ -2355,14 +2204,14 @@ class IP2LocationCountryBlocker
 				$this->write_debug_log('Access is allowed.');
 			}
 
-			if (get_option('ip2location_country_blocker_frontend_block_proxy') && $result['is_proxy'] == 'YES') {
+			if ($this->get_option('frontend_block_proxy') && $result['is_proxy'] == 'YES') {
 				$this->write_debug_log('IP is an anonymous proxy.', 'BLOCKED');
 				$this->block_frontend($result['country_code']);
 
 				return;
 			}
 
-			$proxy_type_list = get_option('ip2location_country_blocker_frontend_block_proxy_type');
+			$proxy_type_list = $this->get_option('frontend_block_proxy_type');
 
 			if (is_array($proxy_type_list)) {
 				if (in_array($result['proxy_type'], $proxy_type_list)) {
@@ -2374,17 +2223,27 @@ class IP2LocationCountryBlocker
 				}
 			}
 
-			if (get_option('ip2location_country_blocker_frontend_auto_block_threshold')) {
-				$GLOBALS['wpdb']->query('INSERT INTO ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_frontend_rate_limit_log(ip_address, date_created) VALUES ("' . $this->get_ip() . '", "' . date('Y-m-d H:i:s') . '")');
+			if ($this->get_option('frontend_auto_block_threshold')) {
+				$this->wpdb_query('INSERT INTO ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_frontend_rate_limit_log (ip_address, date_created) VALUES (%s, %s)', [
+					$this->ip(),
+					date('Y-m-d H:i:s')
+				]);
 
-				$total = $GLOBALS['wpdb']->get_var('SELECT COUNT(*) FROM ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_frontend_rate_limit_log WHERE ip_address = "' . $this->get_ip() . '" AND date_created >= "' . date('Y-m-d H:i:s', strtotime('-24 hour')) . '";');
+				$total = $this->wpdb_get_value(
+					'SELECT COUNT(*) FROM ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_frontend_rate_limit_log WHERE ip_address = %s AND date_created >= %s', [
+					$this->ip(),
+					date('Y-m-d H:i:s', strtotime('-24 hour'))
+				]);
 
-				if ($total >= get_option('ip2location_country_blocker_frontend_auto_block_threshold')) {
+				if ($total >= $this->get_option('frontend_auto_block_threshold')) {
 					// Add client IP into blacklist
-					update_option('ip2location_country_blocker_frontend_ip_blacklist', trim(get_option('ip2location_country_blocker_frontend_ip_blacklist') . ';' . $this->get_ip(), ';'));
+					$this->update_option('frontend_ip_blacklist', trim($this->get_option('frontend_ip_blacklist') . ';' . $this->ip(), ';'));
 				}
 
-				$GLOBALS['wpdb']->query('DELETE FROM ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_frontend_rate_limit_log WHERE ip_address = "' . $this->get_ip() . '" AND date_created < "' . date('Y-m-d H:i:s', strtotime('-24 hour')) . '";');
+				$this->wpdb_query('DELETE FROM ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_backend_rate_limit_log WHERE ip_address = %s AND date_created < %s', [
+					$this->ip(),
+					date('Y-m-d H:i:s', strtotime('-24 hour'))
+				]);
 			}
 		}
 	}
@@ -2454,7 +2313,7 @@ class IP2LocationCountryBlocker
 	{
 		@set_time_limit(300);
 
-		check_ajax_referer('update-database', '__nonce');
+		check_admin_referer('update-database', '__nonce');
 
 		header('Content-Type: application/json');
 
@@ -2470,8 +2329,8 @@ class IP2LocationCountryBlocker
 		global $wp_filesystem;
 
 		try {
-			$token = (isset($_POST['token'])) ? sanitize_text_field($_POST['token']) : '';
-			$ipv4_only = (isset($_POST['ipv4_only']) && $_POST['ipv4_only'] == 'true') ? true : false;
+			$token = $this->post('token', $this->get_option('token'));
+			$ipv4_only = $this->is_checked('ipv4_only');
 			$ipv6 = ($ipv4_only) ? '' : 'IPV6';
 			$code = 'DB1BIN' . $ipv6;
 
@@ -2581,6 +2440,8 @@ class IP2LocationCountryBlocker
 			$files = scandir($working_dir);
 
 			foreach ($files as $file) {
+				$file = basename($file);
+
 				if (strtoupper(substr($file, -4)) == '.BIN') {
 					$bin_database = $file;
 					break;
@@ -2590,10 +2451,10 @@ class IP2LocationCountryBlocker
 			// Move file to IP2Location directory
 			$wp_filesystem->move($working_dir . $bin_database, IP2LOCATION_DIR . $bin_database, true);
 
-			update_option('ip2location_country_blocker_lookup_mode', 'bin');
-			update_option('ip2location_country_blocker_database', $bin_database);
-			update_option('ip2location_country_blocker_token', $token);
-			update_option('ip2location_country_blocker_download_ipv4_only', ($ipv4_only) ? 1 : 0);
+			$this->update_option('lookup_mode', 'bin');
+			$this->update_option('database', $bin_database);
+			$this->update_option('token', $token);
+			$this->update_option('download_ipv4_only', ($ipv4_only) ? 1 : 0);
 
 			// Remove working directory
 			$wp_filesystem->delete($working_dir, true);
@@ -2617,7 +2478,7 @@ class IP2LocationCountryBlocker
 	{
 		@set_time_limit(300);
 
-		check_ajax_referer('update-database', '__nonce');
+		check_admin_referer('update-database', '__nonce');
 
 		header('Content-Type: application/json');
 
@@ -2633,7 +2494,7 @@ class IP2LocationCountryBlocker
 		global $wp_filesystem;
 
 		try {
-			$token = (isset($_POST['token'])) ? sanitize_text_field($_POST['token']) : '';
+			$token = $this->post('token');
 			$code = 'PX2BIN';
 
 			$working_dir = IP2LOCATION_DIR . 'working' . \DIRECTORY_SEPARATOR;
@@ -2723,6 +2584,8 @@ class IP2LocationCountryBlocker
 			$files = scandir($working_dir);
 
 			foreach ($files as $file) {
+				$file = basename($file);
+
 				if (strtoupper(substr($file, -4)) == '.BIN') {
 					$bin_database = $file;
 					break;
@@ -2732,10 +2595,10 @@ class IP2LocationCountryBlocker
 			// Move file to IP2Location directory
 			$wp_filesystem->move($working_dir . $bin_database, IP2LOCATION_DIR . $bin_database, true);
 
-			update_option('ip2location_country_blocker_px_lookup_mode', 'px_bin');
-			update_option('ip2location_country_blocker_px_database', $bin_database);
-			update_option('ip2location_country_blocker_token', $token);
-			update_option('ip2location_country_blocker_download_ipv4_only', ($ipv4_only) ? 1 : 0);
+			$this->update_option('px_lookup_mode', 'px_bin');
+			$this->update_option('px_database', $bin_database);
+			$this->update_option('token', $token);
+			$this->update_option('download_ipv4_only', ($ipv4_only) ? 1 : 0);
 
 			// Remove working directory
 			$wp_filesystem->delete($working_dir, true);
@@ -2766,10 +2629,10 @@ class IP2LocationCountryBlocker
 			]));
 		}
 
-		check_ajax_referer('validate-token', '__nonce');
+		check_admin_referer('validate-token', '__nonce');
 
 		try {
-			$token = (isset($_POST['token'])) ? sanitize_text_field($_POST['token']) : '';
+			$token = $this->post('token');
 
 			// Check download permission
 			$response = wp_remote_get('https://www.ip2location.com/download-info?' . http_build_query([
@@ -2818,7 +2681,7 @@ class IP2LocationCountryBlocker
 				}
 			}
 
-			update_option('ip2location_country_blocker_token', $token);
+			$this->update_option('token', $token);
 
 			exit(json_encode([
 				'status'  => 'OK',
@@ -2846,7 +2709,7 @@ class IP2LocationCountryBlocker
 		check_admin_referer('validate-api-key', '__nonce');
 
 		try {
-			$apiKey = (isset($_POST['key'])) ? sanitize_text_field($_POST['key']) : '';
+			$apiKey = $this->post('key');
 
 			if (empty($apiKey)) {
 				exit(json_encode([
@@ -2882,8 +2745,8 @@ class IP2LocationCountryBlocker
 				]));
 			}
 
-			update_option('ip2location_country_blocker_lookup_mode', 'ws');
-			update_option('ip2location_country_blocker_api_key', $apiKey);
+			$this->update_option('lookup_mode', 'ws');
+			$this->update_option('api_key', $apiKey);
 
 			exit(json_encode([
 				'status'  => 'OK',
@@ -2910,18 +2773,16 @@ class IP2LocationCountryBlocker
 
 		check_admin_referer('restore', '__nonce');
 
-		if (!isset($_FILES['file-restore'])) {
+		if (!isset($_FILES['restore_file']) || $_FILES['restore_file']['error'] !== UPLOAD_ERR_OK) {
 			exit(json_encode([
 				'status'  => 'ERROR',
-				'message' => __('No file is uploaded.', 'ip2location-country-blocker'),
+				'message' => __('File upload error.', 'ip2location-country-blocker')
 			]));
 		}
 
-		$file = tempnam(sys_get_temp_dir(), 'restore');
+		$rows = json_decode(file_get_contents($_FILES['restore_file']['tmp_name']));
 
-		move_uploaded_file($_FILES['file-restore']['tmp_name'], $file);
-
-		if (($rows = json_decode(file_get_contents($file))) === null) {
+		if ($rows === null) {
 			exit(json_encode([
 				'status'  => 'ERROR',
 				'message' => __('Invalid file format.', 'ip2location-country-blocker'),
@@ -2971,7 +2832,6 @@ class IP2LocationCountryBlocker
 			'ip2location_country_blocker_real_ip_header',
 			'ip2location_country_blocker_session_message',
 			'ip2location_country_blocker_token',
-
 		];
 
 		foreach ($rows as $key => $value) {
@@ -2980,10 +2840,10 @@ class IP2LocationCountryBlocker
 				continue;
 			}
 
-			update_option($key, sanitize_text_field($value));
+			update_option($key, ((is_array($value)) ? sanitize_array($value) : sanitize_text_field($value)));
 		}
 
-		update_option('ip2location_country_blocker_session_message', 'Restore completed.');
+		$this->update_option('session_message', 'Restore completed.');
 
 		exit(json_encode([
 			'status' => 'OK',
@@ -3074,13 +2934,13 @@ class IP2LocationCountryBlocker
 
 	public function write_debug_log($message, $action = 'ABORTED')
 	{
-		if (!get_option('ip2location_country_blocker_debug_log_enabled')) {
+		if (!$this->get_option('debug_log_enabled')) {
 			return;
 		}
 
 		error_log(json_encode([
 			'time'       => gmdate('Y-m-d H:i:s'),
-			'client_ip'  => $this->get_ip(),
+			'client_ip'  => $this->ip(),
 			'country'    => $this->session['country'],
 			'is_proxy'   => $this->session['is_proxy'],
 			'proxy_type' => $this->session['proxy_type'],
@@ -3089,7 +2949,7 @@ class IP2LocationCountryBlocker
 			'uri'        => $this->get_current_url(),
 			'message'    => $message,
 			'action'     => $action,
-		]) . "\n", 3, IPLCB_ROOT . $this->debug_log);
+		]) . "\n", 3, IP2LOCATION_DIR . $this->debug_log);
 	}
 
 	public function admin_footer_text($footer_text)
@@ -3161,10 +3021,14 @@ class IP2LocationCountryBlocker
 
 	public function submit_feedback()
 	{
-		check_ajax_referer('submit-feedback', '__nonce');
+		if (!current_user_can('deactivate_plugins')) {
+			exit;
+		}
 
-		$feedback = (isset($_POST['feedback'])) ? sanitize_text_field($_POST['feedback']) : '';
-		$others = (isset($_POST['others'])) ? sanitize_text_field($_POST['others']) : '';
+		check_admin_referer('submit-feedback', '__nonce');
+
+		$feedback = $this->post('feedback');
+		$others = $this->post('others');
 
 		$options = [
 			1 => 'I no longer need the plugin',
@@ -3186,6 +3050,66 @@ class IP2LocationCountryBlocker
 	{
 		$this->cache_clear();
 		$this->set_priority();
+	}
+
+	private function wpdb_query($query, ...$args)
+	{
+		if (count(func_get_args()) > 1) {
+			return $GLOBALS['wpdb']->query($GLOBALS['wpdb']->prepare($query, [...$args]));
+		}
+
+		return $GLOBALS['wpdb']->query($query);
+	}
+
+	private function wpdb_get_value($query, ...$args)
+	{
+		if (count(func_get_args()) > 1) {
+			return $GLOBALS['wpdb']->get_var($GLOBALS['wpdb']->prepare($query, [...$args]));
+		}
+
+		return $GLOBALS['wpdb']->get_var($query);
+	}
+
+	private function wpdb_get_results($query, ...$args)
+	{
+		if (count(func_get_args()) > 1) {
+			return $GLOBALS['wpdb']->get_results($GLOBALS['wpdb']->prepare($query, [...$args]));
+		}
+
+		return $GLOBALS['wpdb']->get_results($query);
+	}
+
+	private function post($key, $default = '', $checkbox = false)
+	{
+		return (isset($_POST[$key])) ? ((is_array($_POST[$key])) ? $this->sanitize_array($_POST[$key]) : sanitize_text_field($_POST[$key])) : $default;
+	}
+
+	private function get($key, $default = '', $checkbox = false)
+	{
+		return (isset($_GET[$key])) ? ((is_array($_GET[$key])) ? $this->sanitize_array($_GET[$key]) : sanitize_text_field($_GET[$key])) : $default;
+	}
+
+	private function is_checked($key, $default = 0)
+	{
+		return ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST[$key])) ? 0 : ((isset($_POST[$key])) ? 1 : (int) $default);
+	}
+
+	private function update_option($key, $value)
+	{
+		$allowed_options = [
+			'access_email_notification', 'api_key', 'backend_auto_block_threshold', 'backend_banlist', 'backend_block_mode', 'backend_block_proxy', 'backend_bots_list', 'backend_enabled', 'backend_error_page', 'backend_ip_blacklist', 'backend_ip_whitelist', 'backend_option', 'backend_redirect_url', 'backend_skip_bots', 'bypass_code', 'database', 'debug_log_enabled', 'detect_forwarder_ip', 'download_ipv4_only', 'email_notification', 'frontend_auto_block_threshold', 'frontend_banlist', 'frontend_block_mode', 'frontend_block_proxy', 'frontend_block_proxy_type', 'frontend_bots_list', 'frontend_enabled', 'frontend_error_page', 'frontend_ip_blacklist', 'frontend_ip_whitelist', 'frontend_option', 'frontend_redirect_url', 'frontend_skip_bots', 'frontend_whitelist_logged_user', 'log_enabled', 'lookup_mode', 'px_api_key', 'px_database', 'px_lookup_mode', 'real_ip_header', 'session_message', 'token',
+		];
+
+		if (!in_array($key, $allowed_options)) {
+			return false;
+		}
+
+		return update_option('ip2location_country_blocker_' . $key, $value);
+	}
+
+	private function get_option($key)
+	{
+		return get_option('ip2location_country_blocker_' . $key);
 	}
 
 	private function cache_plugin_detected()
@@ -3247,12 +3171,12 @@ class IP2LocationCountryBlocker
 
 		$this->write_statistics_log(2, $country_code);
 
-		if (get_option('ip2location_country_blocker_backend_option') == 1) {
+		if ($this->get_option('backend_option') == 1) {
 			$this->deny(null, 'BLOCKED');
-		} elseif (get_option('ip2location_country_blocker_backend_option') == 2) {
-			$this->deny(get_option('ip2location_country_blocker_backend_error_page'));
+		} elseif ($this->get_option('backend_option') == 2) {
+			$this->deny($this->get_option('backend_error_page'));
 		} else {
-			$this->redirect(get_option('ip2location_country_blocker_backend_redirect_url'));
+			$this->redirect($this->get_option('backend_redirect_url'));
 		}
 	}
 
@@ -3264,12 +3188,12 @@ class IP2LocationCountryBlocker
 
 		$this->write_statistics_log(1, $country_code);
 
-		if (get_option('ip2location_country_blocker_frontend_option') == 1) {
+		if ($this->get_option('frontend_option') == 1) {
 			$this->deny(null, 'BLOCKED');
-		} elseif (get_option('ip2location_country_blocker_frontend_option') == 2) {
-			$this->deny(get_option('ip2location_country_blocker_frontend_error_page'));
+		} elseif ($this->get_option('frontend_option') == 2) {
+			$this->deny($this->get_option('frontend_error_page'));
 		} else {
-			$this->redirect(get_option('ip2location_country_blocker_frontend_redirect_url'));
+			$this->redirect($this->get_option('frontend_redirect_url'));
 		}
 	}
 
@@ -3277,15 +3201,21 @@ class IP2LocationCountryBlocker
 	{
 		$table_name = $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_log';
 
-		if (get_option('ip2location_country_blocker_log_enabled') && $GLOBALS['wpdb']->get_var("SHOW TABLES LIKE '$table_name'") == $table_name) {
-			$GLOBALS['wpdb']->query('INSERT INTO ' . $table_name . ' (ip_address, country_code, side, page, date_created) VALUES ("' . $this->get_ip() . '", "' . $country_code . '", ' . $side . ', "' . basename(home_url(add_query_arg(null, null))) . '", "' . date('Y-m-d H:i:s') . '")');
+		if ($this->get_option('log_enabled') && $this->wpdb_get_value("SHOW TABLES LIKE %s", $table_name) == $table_name) {
+			$this->wpdb_query('INSERT INTO ' . $table_name . ' (ip_address, country_code, side, page, date_created) VALUES (%s, %s, %d, %s, %s)',
+				$this->ip(), [
+				$country_code,
+				$side,
+				basename(home_url(add_query_arg(null, null))),
+				date('Y-m-d H:i:s'),
+			]);
 		}
 	}
 
-	private function get_ip()
+	private function ip()
 	{
-		if (get_option('ip2location_country_blocker_real_ip_header')) {
-			return $_SERVER[get_option('ip2location_country_blocker_real_ip_header')] ?? $_SERVER['REMOTE_ADDR'];
+		if ($this->get_option('real_ip_header')) {
+			return $_SERVER[$this->get_option('real_ip_header')] ?? $_SERVER['REMOTE_ADDR'];
 		}
 
 		// Possible using CloudFlare service
@@ -3364,9 +3294,9 @@ class IP2LocationCountryBlocker
 
 	private function is_bot($interface = 'frontend')
 	{
-		$is_bot = preg_match('/baidu|bingbot|googlebot|-google|ia_archiver|msnbot|naverbot|pingdom|seznambot|slurp|teoma|twitter|yandex|yeti|feedburner/i', $this->get_user_agent());
+		$is_bot = preg_match('/baidu|bingbot|googlebot|-google|ia_archiver|msnbot|naverbot|pingdom|seznambot|slurp|teoma|twitter|yandex|yeti|feedburner/i', $this->user_agent());
 
-		$list = get_option('ip2location_country_blocker_' . (($interface == 'frontend') ? 'frontend' : 'backend') . '_bots_list');
+		$list = $this->get_option('' . (($interface == 'frontend') ? 'frontend' : 'backend') . '_bots_list');
 
 		if (is_array($list)) {
 			foreach ($list as $bot) {
@@ -3374,7 +3304,7 @@ class IP2LocationCountryBlocker
 					continue;
 				}
 
-				if (preg_match('/' . $bot . '/i', $this->get_user_agent())) {
+				if (preg_match('/' . $bot . '/i', $this->user_agent())) {
 					return true;
 				}
 			}
@@ -3385,16 +3315,19 @@ class IP2LocationCountryBlocker
 
 	private function send_email()
 	{
-		if (filter_var(get_option('ip2location_country_blocker_email_notification'), \FILTER_VALIDATE_EMAIL)) {
+		if (filter_var($this->get_option('email_notification'), \FILTER_VALIDATE_EMAIL)) {
 			$message = [];
 
 			$message[] = 'Hi,';
 
-			$occurrence = $GLOBALS['wpdb']->get_var('SELECT COUNT(*) FROM ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_log WHERE ip_address = "' . $this->get_ip() . '" AND date_created >= "' . date('Y-m-d H:i:s', strtotime('-1 hour')) . '";');
+			$occurrence = $this->wpdb_get_value('SELECT COUNT(*) FROM ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_log WHERE ip_address = %s AND date_created >= %s', [
+				$this->ip(),
+				date('Y-m-d H:i:s', strtotime('-1 hour'))
+			]);
 
 			$message[] = 'IP2Location Country Blocker has detected and blocked the visitor from accessing your admin page:';
 			$message[] = '';
-			$message[] = 'IP Address: ' . $this->get_ip();
+			$message[] = 'IP Address: ' . $this->ip();
 			$message[] = 'Total Occurrence in past 1 hour: ' . $occurrence;
 			$message[] = 'URL: ' . $this->get_current_url();
 			$message[] = '';
@@ -3410,7 +3343,7 @@ class IP2LocationCountryBlocker
 
 			$this->write_debug_log('Send notification email.');
 
-			wp_mail(get_option('ip2location_country_blocker_email_notification'), 'IP2Location Country Blocker Alert', implode("\n", $message));
+			wp_mail($this->get_option('email_notification'), 'IP2Location Country Blocker Alert', implode("\n", $message));
 		}
 	}
 
@@ -3442,14 +3375,16 @@ class IP2LocationCountryBlocker
 			$post_name = substr($post_name, strrpos($post_name, '/') + 1);
 		}
 
-		$results = $GLOBALS['wpdb']->get_results("SELECT * FROM {$GLOBALS['wpdb']->prefix}posts WHERE post_name = '$post_name'", OBJECT);
+		$results = $this->wpdb_get_results("SELECT ID FROM {$GLOBALS['wpdb']->prefix}posts WHERE post_name = %s", [
+			$post_name
+		]);
 
 		return ($results) ? $results[0]->ID : null;
 	}
 
-	private function get_user_agent()
+	private function user_agent()
 	{
-		return (isset($_SERVER['HTTP_USER_AGENT'])) ? $_SERVER['HTTP_USER_AGENT'] : '';
+		return $_SERVER['HTTP_USER_AGENT'] ?? '';
 	}
 
 	private function redirect($url)
@@ -3612,14 +3547,14 @@ class IP2LocationCountryBlocker
 			'proxy_type'   => '',
 		];
 
-		switch (get_option('ip2location_country_blocker_lookup_mode')) {
+		switch ($this->get_option('lookup_mode')) {
 			// IP2Location Web Service
 			case 'ws':
 				$this->session['lookup_mode'] = 'WS';
 
-				if (preg_match('/^[0-9A-Z]{32}$/', get_option('ip2location_country_blocker_api_key'))) {
+				if (preg_match('/^[0-9A-Z]{32}$/', $this->get_option('api_key'))) {
 					$response = wp_remote_get('https://api.ip2location.io/?' . http_build_query([
-						'key'    => get_option('ip2location_country_blocker_api_key'),
+						'key'    => $this->get_option('api_key'),
 						'ip'     => $ip,
 						'source' => 'wp-country-blocker',
 					]), ['timeout' => 5]);
@@ -3640,7 +3575,7 @@ class IP2LocationCountryBlocker
 					}
 				} else {
 					$response = wp_remote_get('https://api.ip2location.com/v2/?' . http_build_query([
-						'key'     => get_option('ip2location_country_blocker_api_key'),
+						'key'     => $this->get_option('api_key'),
 						'ip'      => $ip,
 						'package' => 'WS1',
 					]), ['timeout' => 5]);
@@ -3668,14 +3603,14 @@ class IP2LocationCountryBlocker
 				$this->session['lookup_mode'] = 'BIN';
 
 				// Make sure IP2Location database is exist.
-				if (!is_file(IP2LOCATION_DIR . get_option('ip2location_country_blocker_database'))) {
+				if (!is_file(IP2LOCATION_DIR . $this->get_option('database'))) {
 					$this->write_debug_log('Database not found.', 'ERROR');
 
 					return $caches;
 				}
 
 				// Create IP2Location object.
-				$db = new \IP2Location\Database(IP2LOCATION_DIR . get_option('ip2location_country_blocker_database'), \IP2Location\Database::FILE_IO);
+				$db = new \IP2Location\Database(IP2LOCATION_DIR . $this->get_option('database'), \IP2Location\Database::FILE_IO);
 
 				// Get geolocation by IP address.
 				$response = $db->lookup($ip, \IP2Location\Database::ALL);
@@ -3688,14 +3623,14 @@ class IP2LocationCountryBlocker
 				break;
 		}
 
-		switch (get_option('ip2location_country_blocker_px_lookup_mode')) {
+		switch ($this->get_option('px_lookup_mode')) {
 			// IP2Location Web Service
 			case 'px_ws':
 				$this->session['lookup_mode'] = 'WS';
 
-				if (preg_match('/^[0-9A-Z]{32}$/', get_option('ip2location_country_blocker_api_key'))) {
+				if (preg_match('/^[0-9A-Z]{32}$/', $this->get_option('api_key'))) {
 					$response = wp_remote_get('https://api.ip2location.io/?' . http_build_query([
-						'key'    => get_option('ip2location_country_blocker_px_api_key'),
+						'key'    => $this->get_option('px_api_key'),
 						'ip'     => $ip,
 						'source' => 'wp-country-blocker',
 					]), ['timeout' => 3]);
@@ -3721,7 +3656,7 @@ class IP2LocationCountryBlocker
 					}
 				} else {
 					$response = wp_remote_get('https://api.ip2proxy.com/?' . http_build_query([
-						'key'     => get_option('ip2location_country_blocker_px_api_key'),
+						'key'     => $this->get_option('px_api_key'),
 						'ip'      => $ip,
 						'package' => 'PX2',
 					]), ['timeout' => 3]);
@@ -3750,21 +3685,21 @@ class IP2LocationCountryBlocker
 
 				// Local BIN database
 			case 'px_bin':
-				if (!get_option('ip2location_country_blocker_px_database')) {
+				if (!$this->get_option('px_database')) {
 					break;
 				}
 
 				$this->session['lookup_mode'] = 'BIN';
 
 				// Make sure IP2Location database is exist.
-				if (!is_file(IP2LOCATION_DIR . get_option('ip2location_country_blocker_px_database'))) {
+				if (!is_file(IP2LOCATION_DIR . $this->get_option('px_database'))) {
 					$this->write_debug_log('Database not found.', 'ERROR');
 
 					return $caches;
 				}
 
 				// Create IP2Location object.
-				$db = new \IP2Proxy\Database(IP2LOCATION_DIR . get_option('ip2location_country_blocker_px_database'), \IP2Location\Database::FILE_IO);
+				$db = new \IP2Proxy\Database(IP2LOCATION_DIR . $this->get_option('px_database'), \IP2Location\Database::FILE_IO);
 
 				// Get geolocation by IP address.
 				$response = $db->lookup($ip, \IP2Proxy\Database::ALL);
@@ -3789,14 +3724,14 @@ class IP2LocationCountryBlocker
 		return (isset($this->countries[$code])) ? $this->countries[$code] : '';
 	}
 
-	private function is_in_list($ip, $list_name)
+	private function in_array($ip, $list_name)
 	{
 		// Expand IPv6
 		if (filter_var($ip, \FILTER_VALIDATE_IP, \FILTER_FLAG_IPV6)) {
 			$ip = implode(':', str_split(unpack('H*0', inet_pton($ip))[0], 4));
 		}
 
-		$rows = explode(';', get_option('ip2location_country_blocker_' . $list_name));
+		$rows = explode(';', $this->get_option('' . $list_name));
 
 		if (count($rows) > 0) {
 			foreach ($rows as $row) {
@@ -3824,22 +3759,22 @@ class IP2LocationCountryBlocker
 
 	private function get_database_date()
 	{
-		if (!is_file(IP2LOCATION_DIR . get_option('ip2location_country_blocker_database'))) {
+		if (!is_file(IP2LOCATION_DIR . $this->get_option('database'))) {
 			return;
 		}
 
-		$obj = new \IP2Location\Database(IP2LOCATION_DIR . get_option('ip2location_country_blocker_database'), \IP2Location\Database::FILE_IO);
+		$obj = new \IP2Location\Database(IP2LOCATION_DIR . $this->get_option('database'), \IP2Location\Database::FILE_IO);
 
 		return date('Y-m-d', strtotime(str_replace('.', '-', $obj->getDatabaseVersion())));
 	}
 
 	private function get_px_database_date()
 	{
-		if (!is_file(IP2LOCATION_DIR . get_option('ip2location_country_blocker_px_database'))) {
+		if (!is_file(IP2LOCATION_DIR . $this->get_option('px_database'))) {
 			return;
 		}
 
-		$db = new \IP2Proxy\Database(IP2LOCATION_DIR . get_option('ip2location_country_blocker_px_database'), \IP2PROXY\Database::FILE_IO);
+		$db = new \IP2Proxy\Database(IP2LOCATION_DIR . $this->get_option('px_database'), \IP2PROXY\Database::FILE_IO);
 
 		return date('Y-m-d', strtotime(str_replace('.', '-', $db->getDatabaseVersion())));
 	}
@@ -3914,11 +3849,11 @@ class IP2LocationCountryBlocker
 
 	private function is_setup_completed()
 	{
-		if (get_option('ip2location_country_blocker_lookup_mode') == 'ws' && get_option('ip2location_country_blocker_api_key')) {
+		if ($this->get_option('lookup_mode') == 'ws' && $this->get_option('api_key')) {
 			return true;
 		}
 
-		if (get_option('ip2location_country_blocker_lookup_mode') == 'bin' && is_file(IP2LOCATION_DIR . get_option('ip2location_country_blocker_database'))) {
+		if ($this->get_option('lookup_mode') == 'bin' && is_file(IP2LOCATION_DIR . $this->get_option('database'))) {
 			return true;
 		}
 
@@ -3928,22 +3863,61 @@ class IP2LocationCountryBlocker
 	private function sanitize_array($array)
 	{
 		if (is_string($array)) {
-			return esc_attr($array);
+			return sanitize_text_field($array);
 		}
 		foreach ($array as $key => $value) {
 			if (is_array($value)) {
 				$array[$key] = $this->sanitize_array($value);
 			} else {
-				$array[$key] = esc_attr($value);
+				$array[$key] = sanitize_text_field($value);
 			}
 		}
 
 		return $array;
 	}
 
+	private function sanitize_list($list)
+	{
+		if (strpos($list, ';') === false && !filter_var(str_replace('*', '0', $list), \FILTER_VALIDATE_IP, \FILTER_FLAG_NO_PRIV_RANGE | \FILTER_FLAG_NO_RES_RANGE)) {
+			return;
+		}
+
+		$items = [];
+		$parts = explode(';', $list);
+
+		sort($parts);
+
+		foreach ($parts as $part) {
+			if (strpos($part, '/') !== false) {
+				list($ip, $range) = explode('/', $part);
+
+				// Skip invalid IP address
+				if (filter_var($ip, \FILTER_VALIDATE_IP)) {
+					continue;
+				}
+
+				// Invalid IPv4 range
+				if (filter_var($ip, \FILTER_VALIDATE_IP, \FILTER_FLAG_IPV4) && ((int) $range < 1 || (int) $range > 32)) {
+					continue;
+				}
+
+				// Invalid IPv6 range
+				if (filter_var($ip, \FILTER_VALIDATE_IP, \FILTER_FLAG_IPV6) && ((int) $range < 1 || (int) $range > 128)) {
+					continue;
+				}
+			} elseif (!filter_var(str_replace('*', '0', $part), \FILTER_VALIDATE_IP)) {
+				continue;
+			}
+
+			$items[] = $part;
+		}
+
+		return implode(';', $items);
+	}
+
 	private function create_table()
 	{
-		$GLOBALS['wpdb']->query('
+		$this->wpdb_query('
 		CREATE TABLE IF NOT EXISTS ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_log (
 			`log_id` INT(11) NOT NULL AUTO_INCREMENT,
 			`ip_address` VARCHAR(39) NOT NULL COLLATE \'utf8_bin\',
@@ -3958,7 +3932,7 @@ class IP2LocationCountryBlocker
 			INDEX `idx_ip_address` (`ip_address`)
 		) COLLATE=\'utf8_bin\'');
 
-		$GLOBALS['wpdb']->query('
+		$this->wpdb_query('
 		CREATE TABLE IF NOT EXISTS ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_frontend_rate_limit_log (
 			`log_id` INT(11) NOT NULL AUTO_INCREMENT,
 			`ip_address` VARCHAR(39) NOT NULL COLLATE \'utf8_bin\',
@@ -3968,7 +3942,7 @@ class IP2LocationCountryBlocker
 			INDEX `idx_ip_address` (`ip_address`)
 		) COLLATE=\'utf8_bin\'');
 
-		$GLOBALS['wpdb']->query('
+		$this->wpdb_query('
 		CREATE TABLE IF NOT EXISTS ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_backend_rate_limit_log (
 			`log_id` INT(11) NOT NULL AUTO_INCREMENT,
 			`ip_address` VARCHAR(39) NOT NULL COLLATE \'utf8_bin\',
@@ -3978,7 +3952,7 @@ class IP2LocationCountryBlocker
 			INDEX `idx_ip_address` (`ip_address`)
 		) COLLATE=\'utf8_bin\'');
 
-		$GLOBALS['wpdb']->query('DROP TABLE IF EXISTS ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_rate_limit_log');
+		$this->wpdb_query('DROP TABLE IF EXISTS ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_rate_limit_log');
 	}
 
 	private function cidr_match($ip, $cidr)
