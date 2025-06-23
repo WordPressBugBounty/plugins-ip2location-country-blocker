@@ -4,7 +4,8 @@
  * Plugin Name: IP2Location Country Blocker
  * Plugin URI: https://ip2location.com/resources/wordpress-ip2location-country-blocker
  * Description: Block visitors from accessing your website or admin area by their country.
- * Version: 2.39.0
+ * Version: 2.39.1
+ * Requires PHP: 7.4
  * Author: IP2Location
  * Author URI: https://www.ip2location.com
  * Text Domain: ip2location-country-blocker.
@@ -47,6 +48,10 @@ class IP2LocationCountryBlocker
 		'proxy_type'  => '??',
 		'lookup_mode' => '??',
 		'cache'       => false,
+	];
+
+	private $allowed_options = [
+		'access_email_notification', 'api_key', 'backend_auto_block_threshold', 'backend_banlist', 'backend_block_mode', 'backend_block_proxy', 'backend_bots_list', 'backend_enabled', 'backend_error_page', 'backend_ip_blacklist', 'backend_ip_whitelist', 'backend_option', 'backend_redirect_url', 'backend_skip_bots', 'bypass_code', 'database', 'debug_log_enabled', 'detect_forwarder_ip', 'download_ipv4_only', 'email_notification', 'frontend_auto_block_threshold', 'frontend_banlist', 'frontend_block_mode', 'frontend_block_proxy', 'frontend_block_proxy_type', 'frontend_bots_list', 'frontend_enabled', 'frontend_error_page', 'frontend_ip_blacklist', 'frontend_ip_whitelist', 'frontend_option', 'frontend_redirect_url', 'frontend_skip_bots', 'frontend_whitelist_logged_user', 'log_enabled', 'lookup_mode', 'px_api_key', 'px_database', 'px_lookup_mode', 'real_ip_header', 'session_message', 'token',
 	];
 
 	private $countries = ['AF' => 'Afghanistan', 'AX' => 'Aland Islands', 'AL' => 'Albania', 'DZ' => 'Algeria', 'AS' => 'American Samoa', 'AD' => 'Andorra', 'AO' => 'Angola', 'AI' => 'Anguilla', 'AQ' => 'Antarctica', 'AG' => 'Antigua and Barbuda', 'AR' => 'Argentina', 'AM' => 'Armenia', 'AW' => 'Aruba', 'AU' => 'Australia', 'AT' => 'Austria', 'AZ' => 'Azerbaijan', 'BS' => 'Bahamas', 'BH' => 'Bahrain', 'BD' => 'Bangladesh', 'BB' => 'Barbados', 'BY' => 'Belarus', 'BE' => 'Belgium', 'BZ' => 'Belize', 'BJ' => 'Benin', 'BM' => 'Bermuda', 'BT' => 'Bhutan', 'BO' => 'Bolivia (Plurinational State of)', 'BQ' => 'Bonaire, Sint Eustatius and Saba', 'BA' => 'Bosnia and Herzegovina', 'BW' => 'Botswana', 'BV' => 'Bouvet Island', 'BR' => 'Brazil', 'IO' => 'British Indian Ocean Territory', 'BN' => 'Brunei Darussalam', 'BG' => 'Bulgaria', 'BF' => 'Burkina Faso', 'BI' => 'Burundi', 'CV' => 'Cabo Verde', 'KH' => 'Cambodia', 'CM' => 'Cameroon', 'CA' => 'Canada', 'KY' => 'Cayman Islands', 'CF' => 'Central African Republic', 'TD' => 'Chad', 'CL' => 'Chile', 'CN' => 'China', 'CX' => 'Christmas Island', 'CC' => 'Cocos (Keeling) Islands', 'CO' => 'Colombia', 'KM' => 'Comoros', 'CG' => 'Congo', 'CD' => 'Congo (Democratic Republic of the)', 'CK' => 'Cook Islands', 'CR' => 'Costa Rica', 'CI' => 'Cote D\'ivoire', 'HR' => 'Croatia', 'CU' => 'Cuba', 'CW' => 'Curacao', 'CY' => 'Cyprus', 'CZ' => 'Czechia', 'DK' => 'Denmark', 'DJ' => 'Djibouti', 'DM' => 'Dominica', 'DO' => 'Dominican Republic', 'EC' => 'Ecuador', 'EG' => 'Egypt', 'SV' => 'El Salvador', 'GQ' => 'Equatorial Guinea', 'ER' => 'Eritrea', 'EE' => 'Estonia', 'ET' => 'Ethiopia', 'FK' => 'Falkland Islands (Malvinas)', 'FO' => 'Faroe Islands', 'FJ' => 'Fiji', 'FI' => 'Finland', 'FR' => 'France', 'GF' => 'French Guiana', 'PF' => 'French Polynesia', 'TF' => 'French Southern Territories', 'GA' => 'Gabon', 'GM' => 'Gambia', 'GE' => 'Georgia', 'DE' => 'Germany', 'GH' => 'Ghana', 'GI' => 'Gibraltar', 'GR' => 'Greece', 'GL' => 'Greenland', 'GD' => 'Grenada', 'GP' => 'Guadeloupe', 'GU' => 'Guam', 'GT' => 'Guatemala', 'GG' => 'Guernsey', 'GN' => 'Guinea', 'GW' => 'Guinea-Bissau', 'GY' => 'Guyana', 'HT' => 'Haiti', 'HM' => 'Heard Island and Mcdonald Islands', 'VA' => 'Holy See', 'HN' => 'Honduras', 'HK' => 'Hong Kong', 'HU' => 'Hungary', 'IS' => 'Iceland', 'IN' => 'India', 'ID' => 'Indonesia', 'IR' => 'Iran (Islamic Republic of)', 'IQ' => 'Iraq', 'IE' => 'Ireland', 'IM' => 'Isle of Man', 'IL' => 'Israel', 'IT' => 'Italy', 'JM' => 'Jamaica', 'JP' => 'Japan', 'JE' => 'Jersey', 'JO' => 'Jordan', 'KZ' => 'Kazakhstan', 'KE' => 'Kenya', 'KI' => 'Kiribati', 'KP' => 'Korea (Democratic People\'s Republic of)', 'KR' => 'Korea (Republic of)', 'KW' => 'Kuwait', 'KG' => 'Kyrgyzstan', 'LA' => 'Lao People\'s Democratic Republic', 'LV' => 'Latvia', 'LB' => 'Lebanon', 'LS' => 'Lesotho', 'LR' => 'Liberia', 'LY' => 'Libya', 'LI' => 'Liechtenstein', 'LT' => 'Lithuania', 'LU' => 'Luxembourg', 'MO' => 'Macao', 'MK' => 'North Macedonia', 'MG' => 'Madagascar', 'MW' => 'Malawi', 'MY' => 'Malaysia', 'MV' => 'Maldives', 'ML' => 'Mali', 'MT' => 'Malta', 'MH' => 'Marshall Islands', 'MQ' => 'Martinique', 'MR' => 'Mauritania', 'MU' => 'Mauritius', 'YT' => 'Mayotte', 'MX' => 'Mexico', 'FM' => 'Micronesia (Federated States of)', 'MD' => 'Moldova (Republic of)', 'MC' => 'Monaco', 'MN' => 'Mongolia', 'ME' => 'Montenegro', 'MS' => 'Montserrat', 'MA' => 'Morocco', 'MZ' => 'Mozambique', 'MM' => 'Myanmar', 'NA' => 'Namibia', 'NR' => 'Nauru', 'NP' => 'Nepal', 'NL' => 'Netherlands', 'NC' => 'New Caledonia', 'NZ' => 'New Zealand', 'NI' => 'Nicaragua', 'NE' => 'Niger', 'NG' => 'Nigeria', 'NU' => 'Niue', 'NF' => 'Norfolk Island', 'MP' => 'Northern Mariana Islands', 'NO' => 'Norway', 'OM' => 'Oman', 'PK' => 'Pakistan', 'PW' => 'Palau', 'PS' => 'Palestine, State of', 'PA' => 'Panama', 'PG' => 'Papua New Guinea', 'PY' => 'Paraguay', 'PE' => 'Peru', 'PH' => 'Philippines', 'PN' => 'Pitcairn', 'PL' => 'Poland', 'PT' => 'Portugal', 'PR' => 'Puerto Rico', 'QA' => 'Qatar', 'RE' => 'Reunion', 'RO' => 'Romania', 'RU' => 'Russian Federation', 'RW' => 'Rwanda', 'BL' => 'Saint Barthelemy', 'SH' => 'Saint Helena, Ascension and Tristan da Cunha', 'KN' => 'Saint Kitts and Nevis', 'LC' => 'Saint Lucia', 'MF' => 'Saint Martin (French Part)', 'PM' => 'Saint Pierre and Miquelon', 'VC' => 'Saint Vincent and The Grenadines', 'WS' => 'Samoa', 'SM' => 'San Marino', 'ST' => 'Sao Tome and Principe', 'SA' => 'Saudi Arabia', 'SN' => 'Senegal', 'RS' => 'Serbia', 'SC' => 'Seychelles', 'SL' => 'Sierra Leone', 'SG' => 'Singapore', 'SX' => 'Sint Maarten (Dutch Part)', 'SK' => 'Slovakia', 'SI' => 'Slovenia', 'SB' => 'Solomon Islands', 'SO' => 'Somalia', 'ZA' => 'South Africa', 'GS' => 'South Georgia and The South Sandwich Islands', 'SS' => 'South Sudan', 'ES' => 'Spain', 'LK' => 'Sri Lanka', 'SD' => 'Sudan', 'SR' => 'Suriname', 'SJ' => 'Svalbard and Jan Mayen', 'SZ' => 'Eswatini', 'SE' => 'Sweden', 'CH' => 'Switzerland', 'SY' => 'Syrian Arab Republic', 'TW' => 'Taiwan (Province of China)', 'TJ' => 'Tajikistan', 'TZ' => 'Tanzania, United Republic of', 'TH' => 'Thailand', 'TL' => 'Timor-Leste', 'TG' => 'Togo', 'TK' => 'Tokelau', 'TO' => 'Tonga', 'TT' => 'Trinidad and Tobago', 'TN' => 'Tunisia', 'TR' => 'Turkey', 'TM' => 'Turkmenistan', 'TC' => 'Turks and Caicos Islands', 'TV' => 'Tuvalu', 'UG' => 'Uganda', 'UA' => 'Ukraine', 'AE' => 'United Arab Emirates', 'GB' => 'United Kingdom of Great Britain and Northern Ireland', 'US' => 'United States', 'UM' => 'United States Minor Outlying Islands', 'UY' => 'Uruguay', 'UZ' => 'Uzbekistan', 'VU' => 'Vanuatu', 'VE' => 'Venezuela (Bolivarian Republic of)', 'VN' => 'Viet Nam', 'VG' => 'Virgin Islands (British)', 'VI' => 'Virgin Islands (U.S.)', 'WF' => 'Wallis and Futuna', 'EH' => 'Western Sahara', 'YE' => 'Yemen', 'ZM' => 'Zambia', 'ZW' => 'Zimbabwe'];
@@ -2262,13 +2267,13 @@ class IP2LocationCountryBlocker
 	{
 		add_option('ip2location_country_blocker_access_email_notification', 'none');
 		add_option('ip2location_country_blocker_api_key', '');
+		add_option('ip2location_country_blocker_backend_auto_block_threshold', '');
 		add_option('ip2location_country_blocker_backend_banlist', '');
 		add_option('ip2location_country_blocker_backend_block_mode', '1');
 		add_option('ip2location_country_blocker_backend_block_proxy', '0');
 		add_option('ip2location_country_blocker_backend_bots_list', '');
 		add_option('ip2location_country_blocker_backend_enabled', '0');
 		add_option('ip2location_country_blocker_backend_error_page', '');
-		add_option('ip2location_country_blocker_backend_auto_block_threshold', '');
 		add_option('ip2location_country_blocker_backend_ip_blacklist', '');
 		add_option('ip2location_country_blocker_backend_ip_whitelist', '');
 		add_option('ip2location_country_blocker_backend_option', '1');
@@ -2278,14 +2283,16 @@ class IP2LocationCountryBlocker
 		add_option('ip2location_country_blocker_database', '');
 		add_option('ip2location_country_blocker_debug_log_enabled', '0');
 		add_option('ip2location_country_blocker_detect_forwarder_ip', '1');
+		add_option('ip2location_country_blocker_download_ipv4_only', '0');
 		add_option('ip2location_country_blocker_email_notification', 'none');
+		add_option('ip2location_country_blocker_frontend_auto_block_threshold', '');
 		add_option('ip2location_country_blocker_frontend_banlist', '');
 		add_option('ip2location_country_blocker_frontend_block_mode', '1');
 		add_option('ip2location_country_blocker_frontend_block_proxy', '0');
+		add_option('ip2location_country_blocker_frontend_block_proxy_type', '');
 		add_option('ip2location_country_blocker_frontend_bots_list', '');
 		add_option('ip2location_country_blocker_frontend_enabled', '0');
 		add_option('ip2location_country_blocker_frontend_error_page', '');
-		add_option('ip2location_country_blocker_frontend_auto_block_threshold', '');
 		add_option('ip2location_country_blocker_frontend_ip_blacklist', '');
 		add_option('ip2location_country_blocker_frontend_ip_whitelist', '');
 		add_option('ip2location_country_blocker_frontend_option', '1');
@@ -2297,9 +2304,9 @@ class IP2LocationCountryBlocker
 		add_option('ip2location_country_blocker_px_api_key', '');
 		add_option('ip2location_country_blocker_px_database', '');
 		add_option('ip2location_country_blocker_px_lookup_mode', '');
-		add_option('ip2location_country_blocker_token', '');
-		add_option('ip2location_country_blocker_download_ipv4_only', '0');
 		add_option('ip2location_country_blocker_real_ip_header', '');
+		add_option('ip2location_country_blocker_session_message', '');
+		add_option('ip2location_country_blocker_token', '');
 
 		$this->create_table();
 
@@ -2789,58 +2796,13 @@ class IP2LocationCountryBlocker
 			]));
 		}
 
-		$allowed_options = [
-			'ip2location_country_blocker_access_email_notification',
-			'ip2location_country_blocker_api_key',
-			'ip2location_country_blocker_backend_auto_block_threshold',
-			'ip2location_country_blocker_backend_banlist',
-			'ip2location_country_blocker_backend_block_mode',
-			'ip2location_country_blocker_backend_block_proxy',
-			'ip2location_country_blocker_backend_bots_list',
-			'ip2location_country_blocker_backend_enabled',
-			'ip2location_country_blocker_backend_error_page',
-			'ip2location_country_blocker_backend_ip_blacklist',
-			'ip2location_country_blocker_backend_ip_whitelist',
-			'ip2location_country_blocker_backend_option',
-			'ip2location_country_blocker_backend_redirect_url',
-			'ip2location_country_blocker_backend_skip_bots',
-			'ip2location_country_blocker_bypass_code',
-			'ip2location_country_blocker_database',
-			'ip2location_country_blocker_debug_log_enabled',
-			'ip2location_country_blocker_detect_forwarder_ip',
-			'ip2location_country_blocker_download_ipv4_only',
-			'ip2location_country_blocker_email_notification',
-			'ip2location_country_blocker_frontend_auto_block_threshold',
-			'ip2location_country_blocker_frontend_banlist',
-			'ip2location_country_blocker_frontend_block_mode',
-			'ip2location_country_blocker_frontend_block_proxy',
-			'ip2location_country_blocker_frontend_block_proxy_type',
-			'ip2location_country_blocker_frontend_bots_list',
-			'ip2location_country_blocker_frontend_enabled',
-			'ip2location_country_blocker_frontend_error_page',
-			'ip2location_country_blocker_frontend_ip_blacklist',
-			'ip2location_country_blocker_frontend_ip_whitelist',
-			'ip2location_country_blocker_frontend_option',
-			'ip2location_country_blocker_frontend_redirect_url',
-			'ip2location_country_blocker_frontend_skip_bots',
-			'ip2location_country_blocker_frontend_whitelist_logged_user',
-			'ip2location_country_blocker_log_enabled',
-			'ip2location_country_blocker_lookup_mode',
-			'ip2location_country_blocker_px_api_key',
-			'ip2location_country_blocker_px_database',
-			'ip2location_country_blocker_px_lookup_mode',
-			'ip2location_country_blocker_real_ip_header',
-			'ip2location_country_blocker_session_message',
-			'ip2location_country_blocker_token',
-		];
-
 		foreach ($rows as $key => $value) {
 			// Skip invalid options
-			if (!in_array($key, $allowed_options)) {
+			if (!in_array(str_replace('ip2location_country_blocker_', '', $key), $this->allowed_options)) {
 				continue;
 			}
 
-			update_option($key, ((is_array($value)) ? sanitize_array($value) : sanitize_text_field($value)));
+			update_option($key, ((is_array($value)) ? $this->sanitize_array($value) : sanitize_text_field($value)));
 		}
 
 		$this->update_option('session_message', 'Restore completed.');
@@ -3096,11 +3058,7 @@ class IP2LocationCountryBlocker
 
 	private function update_option($key, $value)
 	{
-		$allowed_options = [
-			'access_email_notification', 'api_key', 'backend_auto_block_threshold', 'backend_banlist', 'backend_block_mode', 'backend_block_proxy', 'backend_bots_list', 'backend_enabled', 'backend_error_page', 'backend_ip_blacklist', 'backend_ip_whitelist', 'backend_option', 'backend_redirect_url', 'backend_skip_bots', 'bypass_code', 'database', 'debug_log_enabled', 'detect_forwarder_ip', 'download_ipv4_only', 'email_notification', 'frontend_auto_block_threshold', 'frontend_banlist', 'frontend_block_mode', 'frontend_block_proxy', 'frontend_block_proxy_type', 'frontend_bots_list', 'frontend_enabled', 'frontend_error_page', 'frontend_ip_blacklist', 'frontend_ip_whitelist', 'frontend_option', 'frontend_redirect_url', 'frontend_skip_bots', 'frontend_whitelist_logged_user', 'log_enabled', 'lookup_mode', 'px_api_key', 'px_database', 'px_lookup_mode', 'real_ip_header', 'session_message', 'token',
-		];
-
-		if (!in_array($key, $allowed_options)) {
+		if (!in_array($key, $this->allowed_options)) {
 			return false;
 		}
 
