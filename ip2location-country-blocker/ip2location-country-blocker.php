@@ -4,7 +4,7 @@
  * Plugin Name: IP2Location Country Blocker
  * Plugin URI: https://ip2location.com/resources/wordpress-ip2location-country-blocker
  * Description: Block visitors from accessing your website or admin area by their country.
- * Version: 2.39.1
+ * Version: 2.39.2
  * Requires PHP: 7.4
  * Author: IP2Location
  * Author URI: https://www.ip2location.com
@@ -3017,7 +3017,7 @@ class IP2LocationCountryBlocker
 	private function wpdb_query($query, ...$args)
 	{
 		if (count(func_get_args()) > 1) {
-			return $GLOBALS['wpdb']->query($GLOBALS['wpdb']->prepare($query, [...$args]));
+			return $GLOBALS['wpdb']->query($GLOBALS['wpdb']->prepare($query, ...$args));
 		}
 
 		return $GLOBALS['wpdb']->query($query);
@@ -3026,7 +3026,7 @@ class IP2LocationCountryBlocker
 	private function wpdb_get_value($query, ...$args)
 	{
 		if (count(func_get_args()) > 1) {
-			return $GLOBALS['wpdb']->get_var($GLOBALS['wpdb']->prepare($query, [...$args]));
+			return $GLOBALS['wpdb']->get_var($GLOBALS['wpdb']->prepare($query, ...$args));
 		}
 
 		return $GLOBALS['wpdb']->get_var($query);
@@ -3035,7 +3035,7 @@ class IP2LocationCountryBlocker
 	private function wpdb_get_results($query, ...$args)
 	{
 		if (count(func_get_args()) > 1) {
-			return $GLOBALS['wpdb']->get_results($GLOBALS['wpdb']->prepare($query, [...$args]));
+			return $GLOBALS['wpdb']->get_results($GLOBALS['wpdb']->prepare($query, ...$args));
 		}
 
 		return $GLOBALS['wpdb']->get_results($query);
@@ -3850,7 +3850,7 @@ class IP2LocationCountryBlocker
 				list($ip, $range) = explode('/', $part);
 
 				// Skip invalid IP address
-				if (filter_var($ip, \FILTER_VALIDATE_IP)) {
+				if (!filter_var($ip, \FILTER_VALIDATE_IP)) {
 					continue;
 				}
 
