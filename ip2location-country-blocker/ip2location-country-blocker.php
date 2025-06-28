@@ -4,7 +4,7 @@
  * Plugin Name: IP2Location Country Blocker
  * Plugin URI: https://ip2location.com/resources/wordpress-ip2location-country-blocker
  * Description: Block visitors from accessing your website or admin area by their country.
- * Version: 2.39.2
+ * Version: 2.39.3
  * Requires PHP: 7.4
  * Author: IP2Location
  * Author URI: https://www.ip2location.com
@@ -3160,8 +3160,8 @@ class IP2LocationCountryBlocker
 		$table_name = $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_log';
 
 		if ($this->get_option('log_enabled') && $this->wpdb_get_value("SHOW TABLES LIKE %s", $table_name) == $table_name) {
-			$this->wpdb_query('INSERT INTO ' . $table_name . ' (ip_address, country_code, side, page, date_created) VALUES (%s, %s, %d, %s, %s)',
-				$this->ip(), [
+			$this->wpdb_query('INSERT INTO ' . $table_name . ' (ip_address, country_code, side, page, date_created) VALUES (%s, %s, %d, %s, %s)', [
+				$this->ip(),
 				$country_code,
 				$side,
 				basename(home_url(add_query_arg(null, null))),
