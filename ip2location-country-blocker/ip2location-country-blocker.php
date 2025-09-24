@@ -4,7 +4,7 @@
  * Plugin Name: IP2Location Country Blocker
  * Plugin URI: https://ip2location.com/resources/wordpress-ip2location-country-blocker
  * Description: Block visitors from accessing your website or admin area by their country.
- * Version: 2.39.5
+ * Version: 2.40.0
  * Requires PHP: 7.4
  * Author: IP2Location
  * Author URI: https://www.ip2location.com
@@ -1204,6 +1204,17 @@ class IP2LocationCountryBlocker
 			$real_ip_header = '';
 		}
 
+		if ($this->post('cache_nonce')) {
+			check_admin_referer('cache', 'cache_nonce');
+
+			$this->cache_flush();
+
+			$settings_status = '
+			<div class="updated">
+				<p>' . __('All cache has been flushed.', 'ip2location-country-blocker') . '</p>
+			</div>';
+		}
+
 		if ($this->post('lookup_mode')) {
 			check_admin_referer('settings');
 
@@ -1699,6 +1710,18 @@ class IP2LocationCountryBlocker
 								' . __('Restore settings from previous installation.', 'ip2location-country-blocker') . '
 							</p>
 							<input type="hidden" id="restore_nonce" value="' . wp_create_nonce('restore') . '">
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label>' . __('Cache', 'ip2location-country-blocker') . '</label>
+						</th>
+						<td>
+							<button id="btn_clear_cache" type="button" class="button button-danger">' . __('Clear Cache', 'ip2location-country-blocker') . ' (' . $this->display_bytes($this->cache_size()) . ')</button>
+							<p class="description">
+								' . __('Clear all cached data.', 'ip2location-country-blocker') . '
+							</p>
+							<input type="hidden" id="cache_nonce" value="' . wp_create_nonce('cache') . '">
 						</td>
 					</tr>
 				</table>
@@ -3769,6 +3792,21 @@ class IP2LocationCountryBlocker
 		}
 	}
 
+	private function cache_size()
+	{
+		$size = 0;
+
+		$files = scandir(IP2LOCATION_DIR . 'caches');
+
+		foreach ($files as $file) {
+			if (substr($file, -5) == '.json') {
+				$size += filesize(IP2LOCATION_DIR . 'caches' . \DIRECTORY_SEPARATOR . $file);
+			}
+		}
+
+		return $size;
+	}
+
 	private function cache_flush()
 	{
 		require_once ABSPATH . 'wp-admin/includes/file.php';
@@ -3941,5 +3979,17 @@ class IP2LocationCountryBlocker
 		}
 
 		return false;
+	}
+
+	private function display_bytes($bytes)
+	{
+		$ext = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+
+		$index = 0;
+		for (; $bytes > 1024; ++$index) {
+			$bytes /= 1024;
+		}
+
+		return number_format((float) $bytes, 0, '.', ',') . ' ' . $ext[$index];
 	}
 }
