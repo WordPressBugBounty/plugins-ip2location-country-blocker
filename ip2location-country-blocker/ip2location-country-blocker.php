@@ -4,7 +4,7 @@
  * Plugin Name: IP2Location Country Blocker
  * Plugin URI: https://ip2location.com/resources/wordpress-ip2location-country-blocker
  * Description: Block visitors from accessing your website or admin area by their country.
- * Version: 2.40.0
+ * Version: 2.41.2
  * Requires PHP: 7.4
  * Author: IP2Location
  * Author URI: https://www.ip2location.com
@@ -87,6 +87,7 @@ class IP2LocationCountryBlocker
 		'linkedinbot'                 => 'LinkedIn',
 		'msnbot'                      => 'MSN',
 		'mj12bot'                     => 'Majestic',
+		'perplexity'                  => 'Perplexity',
 		'pinterest'                   => 'Pinterest',
 		'semrushbot'                  => 'SemrushBot',
 		'sogou'                       => 'Sogou',
@@ -2356,7 +2357,7 @@ class IP2LocationCountryBlocker
 
 		try {
 			$token = $this->post('token', $this->get_option('token'));
-			$ipv4_only = $this->is_checked('ipv4_only');
+			$ipv4_only = $this->post('ipv4_only') === 'true';
 			$ipv6 = ($ipv4_only) ? '' : 'IPV6';
 			$code = 'DB1BIN' . $ipv6;
 
@@ -3271,7 +3272,7 @@ class IP2LocationCountryBlocker
 
 	private function is_bot($interface = 'frontend')
 	{
-		$is_bot = preg_match('/baidu|bingbot|googlebot|-google|ia_archiver|msnbot|naverbot|pingdom|seznambot|slurp|teoma|twitter|yandex|yeti|feedburner/i', $this->user_agent());
+		$is_bot = preg_match('/baidu|bingbot|googlebot|-google|ia_archiver|msnbot|naverbot|perplexity|pingdom|seznambot|slurp|teoma|twitter|yandex|yeti|feedburner/i', $this->user_agent());
 
 		$list = $this->get_option('' . (($interface == 'frontend') ? 'frontend' : 'backend') . '_bots_list');
 
