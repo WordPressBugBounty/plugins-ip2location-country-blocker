@@ -5,7 +5,7 @@ Donate link: https://www.ip2location.com
 Tags: ip2location, block country, block proxy, redirection, ip address, 403, ipv4, ipv6, detect proxy, ip2proxy, ip geolocation
 Requires at least: 4.6
 Tested up to: 7.0
-Stable tag: 2.42.2
+Stable tag: 2.43.0
 
 Blocks unwanted visitors from accessing your frontend (blog pages) or backend (admin area) by countries or proxy servers.
 
@@ -54,7 +54,7 @@ We encourage you to update your BIN file every month so that your plugin works w
 The frontend means your blog pages.
 
 = What is the backend? =
-The backend means the wordpress admin pages.
+The backend means the WordPress admin pages.
 
 = Can I select multiple countries for blocking? =
 Yes, you can.
@@ -63,7 +63,7 @@ Yes, you can.
 Yes, you can use the default 403 provided in this plugin.
 
 = Can I custom my own error page? =
-Yes, you can create a new page on wordpress and design your own error display. Once completed, you can mark your error page as "private" and configure the error redirection at the setting page.
+Yes, you can create a new page on WordPress and design your own error display. Once completed, you can mark your error page as "private" and configure the error redirection at the setting page.
 
 = Can I configure email notification if someone tries to access my admin page? =
 Yes, you can configure email notification if an user from blocked countries list attempting to access your admin page.
@@ -82,15 +82,17 @@ Send us email at support@ip2location.com
 
 == Screenshots ==
 
-1. **Country lookup by ip address** - Allow you to perform country lookup by entering a IP address.
+1. **Country lookup by IP address** - Allow you to perform country lookup by entering a IP address.
 2. **Frontend blocking** - Select countries that you would like to block from accessing your blog pages. Page redirection supported.
 3. **Backend blocking** - Select countries that you would like to block the visitors from accessing your admin area (wp-login) page. Page redirection supported.
-4. **Custom error page** - Custom your own error page to suit your wordpress theme.
+4. **Custom error page** - Custom your own error page to suit your WordPress theme.
 5. **Email Alert** - Notify you with details when an user was trying to access your admin page.
 6. **Statistic Page** - View blocked traffics and countries.
 
 
 == Changelog ==
+* 2.43.0 Added custom 403 error page HTML, IP blacklist/whitelist export, and IP import validation feedback. Improve statistics page.
+* 2.42.3 Fixed backend blocking not applied on admin pages. Fixed frontend rate limit cleanup table. Restored frontend email notification.
 * 2.42.2 Fix API Key validation issue.
 * 2.42.1 Tested up to WordPress 7.0.
 * 2.42.0 Added AI bots to the crawler lists.
@@ -362,4 +364,4 @@ Send us email at support@ip2location.com
 
 Please take note that this plugin requires minimum **PHP version 5.4**.
 
-* If you are using IP2Location LITE database, please follow [these instructions](https://blog.ip2location.com/knowledge-base/how-to-add-an-attribution-in-wordpress-when-using-ip2location-lite-database/) to add attribution into your website.
+* If you are using IP2Location LITE database, please follow [these instructions](https://blog.ip2location.com/knowledge-base/how-to-add-an-attribution-in-WordPress-when-using-ip2location-lite-database/) to add attribution into your website.

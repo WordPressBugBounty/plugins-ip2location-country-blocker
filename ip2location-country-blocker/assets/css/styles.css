@@ -44,3 +44,19 @@
     0% {transform: rotate(0deg)}
     100% {transform: rotate(360deg)}
 }
+/* ===== Statistics page ===== */
+.iplcb-stat-grid{display:flex;flex-wrap:wrap;gap:16px;margin:16px 0;}
+.iplcb-stat-card{flex:1 1 200px;min-width:190px;background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:16px 20px;box-shadow:0 1px 2px rgba(0,0,0,.05);}
+.iplcb-stat-label{display:block;color:#646970;font-size:12px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}
+.iplcb-stat-value{display:block;font-size:30px;font-weight:700;color:#1d2327;line-height:1.1;}
+.iplcb-stat-sub{display:block;color:#787c82;font-size:12px;margin-top:4px;}
+.iplcb-panel{background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:20px;margin:16px 0;box-shadow:0 1px 2px rgba(0,0,0,.05);}
+.iplcb-panel h3{margin:0 0 4px;font-size:16px;}
+.iplcb-panel h4{margin:20px 0 8px;font-size:13px;color:#1d2327;}
+.iplcb-panel .description{margin:0 0 16px;}
+.iplcb-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;}
+@media screen and (max-width:1199px){.iplcb-cols{grid-template-columns:1fr;}}
+.iplcb-chart-wrap{position:relative;height:280px;}
+.iplcb-chart-wrap.tall{height:360px;}
+.iplcb-purge{margin-top:16px;text-align:right;}
+.iplcb-purge .description{margin:8px 0 0;}
