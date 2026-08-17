@@ -4,7 +4,7 @@
  * Plugin Name: IP2Location Country Blocker
  * Plugin URI: https://ip2location.com/resources/wordpress-ip2location-country-blocker
  * Description: Block visitors from accessing your website or admin area by their country.
- * Version: 2.43.0
+ * Version: 2.43.3
  * Requires PHP: 7.4
  * Author: IP2Location
  * Author URI: https://www.ip2location.com
@@ -52,7 +52,7 @@ class IP2LocationCountryBlocker
 	];
 
 	private $allowed_options = [
-		'access_email_notification', 'api_key', 'backend_auto_block_threshold', 'backend_banlist', 'backend_block_mode', 'backend_block_proxy', 'backend_bots_list', 'backend_enabled', 'backend_error_page', 'backend_ip_blacklist', 'backend_ip_whitelist', 'backend_option', 'backend_redirect_url', 'backend_skip_bots', 'bypass_code', 'custom_error_html', 'database', 'debug_log_enabled', 'detect_forwarder_ip', 'download_ipv4_only', 'email_notification', 'frontend_auto_block_threshold', 'frontend_banlist', 'frontend_block_mode', 'frontend_block_proxy', 'frontend_block_proxy_type', 'frontend_bots_list', 'frontend_enabled', 'frontend_error_page', 'frontend_ip_blacklist', 'frontend_ip_whitelist', 'frontend_option', 'frontend_redirect_url', 'frontend_skip_bots', 'frontend_whitelist_logged_user', 'log_enabled', 'lookup_mode', 'px_api_key', 'px_database', 'px_lookup_mode', 'real_ip_header', 'session_message', 'show_logo', 'token',
+		'access_email_notification', 'api_key', 'backend_auto_block_threshold', 'backend_banlist', 'backend_block_mode', 'backend_block_proxy', 'backend_bots_list', 'backend_enabled', 'backend_error_page', 'backend_ip_blacklist', 'backend_ip_whitelist', 'backend_option', 'backend_redirect_url', 'backend_skip_bots', 'bypass_code', 'custom_error_html', 'database', 'debug_log_enabled', 'detect_forwarder_ip', 'download_ipv4_only', 'email_notification', 'frontend_auto_block_threshold', 'frontend_banlist', 'frontend_block_mode', 'frontend_block_proxy', 'frontend_block_proxy_type', 'frontend_bots_list', 'frontend_enabled', 'frontend_error_page', 'frontend_ip_blacklist', 'frontend_ip_whitelist', 'frontend_option', 'frontend_redirect_url', 'frontend_skip_bots', 'frontend_whitelist_logged_user', 'log_enabled', 'lookup_cache_enabled', 'lookup_mode', 'px_api_key', 'px_database', 'px_lookup_mode', 'real_ip_header', 'session_message', 'show_logo', 'token',
 	];
 
 	private $countries = ['AF' => 'Afghanistan', 'AX' => 'Aland Islands', 'AL' => 'Albania', 'DZ' => 'Algeria', 'AS' => 'American Samoa', 'AD' => 'Andorra', 'AO' => 'Angola', 'AI' => 'Anguilla', 'AQ' => 'Antarctica', 'AG' => 'Antigua and Barbuda', 'AR' => 'Argentina', 'AM' => 'Armenia', 'AW' => 'Aruba', 'AU' => 'Australia', 'AT' => 'Austria', 'AZ' => 'Azerbaijan', 'BS' => 'Bahamas', 'BH' => 'Bahrain', 'BD' => 'Bangladesh', 'BB' => 'Barbados', 'BY' => 'Belarus', 'BE' => 'Belgium', 'BZ' => 'Belize', 'BJ' => 'Benin', 'BM' => 'Bermuda', 'BT' => 'Bhutan', 'BO' => 'Bolivia (Plurinational State of)', 'BQ' => 'Bonaire, Sint Eustatius and Saba', 'BA' => 'Bosnia and Herzegovina', 'BW' => 'Botswana', 'BV' => 'Bouvet Island', 'BR' => 'Brazil', 'IO' => 'British Indian Ocean Territory', 'BN' => 'Brunei Darussalam', 'BG' => 'Bulgaria', 'BF' => 'Burkina Faso', 'BI' => 'Burundi', 'CV' => 'Cabo Verde', 'KH' => 'Cambodia', 'CM' => 'Cameroon', 'CA' => 'Canada', 'KY' => 'Cayman Islands', 'CF' => 'Central African Republic', 'TD' => 'Chad', 'CL' => 'Chile', 'CN' => 'China', 'CX' => 'Christmas Island', 'CC' => 'Cocos (Keeling) Islands', 'CO' => 'Colombia', 'KM' => 'Comoros', 'CG' => 'Congo', 'CD' => 'Congo (Democratic Republic of the)', 'CK' => 'Cook Islands', 'CR' => 'Costa Rica', 'CI' => 'Cote D\'ivoire', 'HR' => 'Croatia', 'CU' => 'Cuba', 'CW' => 'Curacao', 'CY' => 'Cyprus', 'CZ' => 'Czechia', 'DK' => 'Denmark', 'DJ' => 'Djibouti', 'DM' => 'Dominica', 'DO' => 'Dominican Republic', 'EC' => 'Ecuador', 'EG' => 'Egypt', 'SV' => 'El Salvador', 'GQ' => 'Equatorial Guinea', 'ER' => 'Eritrea', 'EE' => 'Estonia', 'ET' => 'Ethiopia', 'FK' => 'Falkland Islands (Malvinas)', 'FO' => 'Faroe Islands', 'FJ' => 'Fiji', 'FI' => 'Finland', 'FR' => 'France', 'GF' => 'French Guiana', 'PF' => 'French Polynesia', 'TF' => 'French Southern Territories', 'GA' => 'Gabon', 'GM' => 'Gambia', 'GE' => 'Georgia', 'DE' => 'Germany', 'GH' => 'Ghana', 'GI' => 'Gibraltar', 'GR' => 'Greece', 'GL' => 'Greenland', 'GD' => 'Grenada', 'GP' => 'Guadeloupe', 'GU' => 'Guam', 'GT' => 'Guatemala', 'GG' => 'Guernsey', 'GN' => 'Guinea', 'GW' => 'Guinea-Bissau', 'GY' => 'Guyana', 'HT' => 'Haiti', 'HM' => 'Heard Island and Mcdonald Islands', 'VA' => 'Holy See', 'HN' => 'Honduras', 'HK' => 'Hong Kong', 'HU' => 'Hungary', 'IS' => 'Iceland', 'IN' => 'India', 'ID' => 'Indonesia', 'IR' => 'Iran (Islamic Republic of)', 'IQ' => 'Iraq', 'IE' => 'Ireland', 'IM' => 'Isle of Man', 'IL' => 'Israel', 'IT' => 'Italy', 'JM' => 'Jamaica', 'JP' => 'Japan', 'JE' => 'Jersey', 'JO' => 'Jordan', 'KZ' => 'Kazakhstan', 'KE' => 'Kenya', 'KI' => 'Kiribati', 'KP' => 'Korea (Democratic People\'s Republic of)', 'KR' => 'Korea (Republic of)', 'KW' => 'Kuwait', 'KG' => 'Kyrgyzstan', 'LA' => 'Lao People\'s Democratic Republic', 'LV' => 'Latvia', 'LB' => 'Lebanon', 'LS' => 'Lesotho', 'LR' => 'Liberia', 'LY' => 'Libya', 'LI' => 'Liechtenstein', 'LT' => 'Lithuania', 'LU' => 'Luxembourg', 'MO' => 'Macao', 'MK' => 'North Macedonia', 'MG' => 'Madagascar', 'MW' => 'Malawi', 'MY' => 'Malaysia', 'MV' => 'Maldives', 'ML' => 'Mali', 'MT' => 'Malta', 'MH' => 'Marshall Islands', 'MQ' => 'Martinique', 'MR' => 'Mauritania', 'MU' => 'Mauritius', 'YT' => 'Mayotte', 'MX' => 'Mexico', 'FM' => 'Micronesia (Federated States of)', 'MD' => 'Moldova (Republic of)', 'MC' => 'Monaco', 'MN' => 'Mongolia', 'ME' => 'Montenegro', 'MS' => 'Montserrat', 'MA' => 'Morocco', 'MZ' => 'Mozambique', 'MM' => 'Myanmar', 'NA' => 'Namibia', 'NR' => 'Nauru', 'NP' => 'Nepal', 'NL' => 'Netherlands', 'NC' => 'New Caledonia', 'NZ' => 'New Zealand', 'NI' => 'Nicaragua', 'NE' => 'Niger', 'NG' => 'Nigeria', 'NU' => 'Niue', 'NF' => 'Norfolk Island', 'MP' => 'Northern Mariana Islands', 'NO' => 'Norway', 'OM' => 'Oman', 'PK' => 'Pakistan', 'PW' => 'Palau', 'PS' => 'Palestine, State of', 'PA' => 'Panama', 'PG' => 'Papua New Guinea', 'PY' => 'Paraguay', 'PE' => 'Peru', 'PH' => 'Philippines', 'PN' => 'Pitcairn', 'PL' => 'Poland', 'PT' => 'Portugal', 'PR' => 'Puerto Rico', 'QA' => 'Qatar', 'RE' => 'Reunion', 'RO' => 'Romania', 'RU' => 'Russian Federation', 'RW' => 'Rwanda', 'BL' => 'Saint Barthelemy', 'SH' => 'Saint Helena, Ascension and Tristan da Cunha', 'KN' => 'Saint Kitts and Nevis', 'LC' => 'Saint Lucia', 'MF' => 'Saint Martin (French Part)', 'PM' => 'Saint Pierre and Miquelon', 'VC' => 'Saint Vincent and The Grenadines', 'WS' => 'Samoa', 'SM' => 'San Marino', 'ST' => 'Sao Tome and Principe', 'SA' => 'Saudi Arabia', 'SN' => 'Senegal', 'RS' => 'Serbia', 'SC' => 'Seychelles', 'SL' => 'Sierra Leone', 'SG' => 'Singapore', 'SX' => 'Sint Maarten (Dutch Part)', 'SK' => 'Slovakia', 'SI' => 'Slovenia', 'SB' => 'Solomon Islands', 'SO' => 'Somalia', 'ZA' => 'South Africa', 'GS' => 'South Georgia and The South Sandwich Islands', 'SS' => 'South Sudan', 'ES' => 'Spain', 'LK' => 'Sri Lanka', 'SD' => 'Sudan', 'SR' => 'Suriname', 'SJ' => 'Svalbard and Jan Mayen', 'SZ' => 'Eswatini', 'SE' => 'Sweden', 'CH' => 'Switzerland', 'SY' => 'Syrian Arab Republic', 'TW' => 'Taiwan (Province of China)', 'TJ' => 'Tajikistan', 'TZ' => 'Tanzania, United Republic of', 'TH' => 'Thailand', 'TL' => 'Timor-Leste', 'TG' => 'Togo', 'TK' => 'Tokelau', 'TO' => 'Tonga', 'TT' => 'Trinidad and Tobago', 'TN' => 'Tunisia', 'TR' => 'Turkey', 'TM' => 'Turkmenistan', 'TC' => 'Turks and Caicos Islands', 'TV' => 'Tuvalu', 'UG' => 'Uganda', 'UA' => 'Ukraine', 'AE' => 'United Arab Emirates', 'GB' => 'United Kingdom of Great Britain and Northern Ireland', 'US' => 'United States', 'UM' => 'United States Minor Outlying Islands', 'UY' => 'Uruguay', 'UZ' => 'Uzbekistan', 'VU' => 'Vanuatu', 'VE' => 'Venezuela (Bolivarian Republic of)', 'VN' => 'Viet Nam', 'VG' => 'Virgin Islands (British)', 'VI' => 'Virgin Islands (U.S.)', 'WF' => 'Wallis and Futuna', 'EH' => 'Western Sahara', 'YE' => 'Yemen', 'ZM' => 'Zambia', 'ZW' => 'Zimbabwe'];
@@ -118,7 +118,7 @@ class IP2LocationCountryBlocker
 
 	public function __construct()
 	{
-		// Set priority
+		// Set priority.
 		$this->set_priority();
 
 		// Check for IP2Location BIN directory.
@@ -204,7 +204,7 @@ class IP2LocationCountryBlocker
 
 		$frontend_status = '';
 
-		// Default values
+		// Default values.
 		$enable_frontend = $this->is_checked('enable_frontend', $this->get_option('frontend_enabled'));
 		$frontend_block_mode = $this->post('frontend_block_mode', $this->get_option('frontend_block_mode'));
 		$frontend_ban_list = $this->post('frontend_ban_list', $this->get_option('frontend_banlist'));
@@ -222,7 +222,7 @@ class IP2LocationCountryBlocker
 		$frontend_block_proxy = $this->is_checked('frontend_block_proxy', $this->get_option('frontend_block_proxy'));
 		$frontend_block_proxy_type = $this->post('frontend_block_proxy_type', $this->get_option('frontend_block_proxy_type'));
 
-		// Sanitize inputs
+		// Sanitize inputs.
 		$frontend_import_notice = '';
 
 		if (!empty($frontend_ip_whitelist)) {
@@ -557,7 +557,7 @@ class IP2LocationCountryBlocker
 		$email_notification = $this->post('email_notification', $this->get_option('email_notification'));
 		$access_email_notification = $this->post('access_email_notification', $this->get_option('access_email_notification'));
 
-		// Sanitize inputs
+		// Sanitize inputs.
 		$backend_import_notice = '';
 
 		if (!empty($backend_ip_whitelist)) {
@@ -1326,6 +1326,7 @@ class IP2LocationCountryBlocker
 		$download_ipv4_only = $this->is_checked('download_ipv4_only', $this->get_option('download_ipv4_only'));
 		$detect_forwarder_ip = $this->is_checked('detect_forwarder_ip', $this->get_option('detect_forwarder_ip'));
 		$enable_log = $this->is_checked('enable_log', $this->get_option('log_enabled'));
+		$enable_lookup_cache = $this->is_checked('enable_lookup_cache', $this->get_option('lookup_cache_enabled'));
 		$enable_debug_log = $this->is_checked('enable_debug_log', $this->get_option('debug_log_enabled'));
 		$real_ip_header = $this->post('real_ip_header', $this->get_option('real_ip_header'));
 		$custom_error_html = (isset($_POST['custom_error_html'])) ? wp_unslash($_POST['custom_error_html']) : $this->get_option('custom_error_html');
@@ -1470,6 +1471,7 @@ class IP2LocationCountryBlocker
 				$this->update_option('token', $download_token);
 				$this->update_option('detect_forwarder_ip', $detect_forwarder_ip);
 				$this->update_option('log_enabled', $enable_log);
+				$this->update_option('lookup_cache_enabled', $enable_lookup_cache);
 				$this->update_option('debug_log_enabled', $enable_debug_log);
 				$this->update_option('real_ip_header', $real_ip_header);
 				$this->update_option('custom_error_html', wp_kses($custom_error_html, array_merge(wp_kses_allowed_html('post'), [
@@ -1655,7 +1657,7 @@ class IP2LocationCountryBlocker
 								<option value=""' . (($px_lookup_mode == '') ? ' selected' : '') . '> ' . __('Disabled', 'ip2location-country-blocker') . '</option>
 								<option value="px_bin"' . (($px_lookup_mode == 'px_bin') ? ' selected' : '') . '> ' . __('Local BIN Database', 'ip2location-country-blocker') . '</option>
 								<option value="px_ws"' . (($px_lookup_mode == 'px_ws') ? ' selected' : '') . '> ' . __('API Web Service', 'ip2location-country-blocker') . '</option>
-							<select>
+							</select>
 						</td>
 					</tr>
 					<tr>
@@ -1796,6 +1798,22 @@ class IP2LocationCountryBlocker
 					</tr>
 					<tr>
 						<th scope="row">
+							<label for="enable_lookup_cache">' . __('Lookup Cache', 'ip2location-country-blocker') . '</label>
+						</th>
+						<td>
+							<label for="enable_lookup_cache">
+								<input type="checkbox" name="enable_lookup_cache" id="enable_lookup_cache" value="1"' . (($enable_lookup_cache == 1) ? ' checked' : '') . ' /> ' . __('Enable lookup cache', 'ip2location-country-blocker') . '
+								<p class="description">
+									' . __('Cache geolocation results to speed up page loading. Disable if you need fresh lookup results on every visit.', 'ip2location-country-blocker') . '
+								</p>
+							</label>
+
+							<button id="btn_clear_cache" type="button" class="button button-danger" style="margin-top: 1em;">' . __('Clear Cache', 'ip2location-country-blocker') . ' (' . $this->display_bytes($this->cache_size()) . ')</button>
+							<input type="hidden" id="cache_nonce" value="' . wp_create_nonce('cache') . '">
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
 							<label for="enable_debug_log">' . __('Debugging Logs', 'ip2location-country-blocker') . '</label>
 						</th>
 						<td>
@@ -1863,18 +1881,6 @@ class IP2LocationCountryBlocker
 								' . __('Restore settings from previous installation.', 'ip2location-country-blocker') . '
 							</p>
 							<input type="hidden" id="restore_nonce" value="' . wp_create_nonce('restore') . '">
-						</td>
-					</tr>
-					<tr>
-						<th scope="row">
-							<label>' . __('Cache', 'ip2location-country-blocker') . '</label>
-						</th>
-						<td>
-							<button id="btn_clear_cache" type="button" class="button button-danger">' . __('Clear Cache', 'ip2location-country-blocker') . ' (' . $this->display_bytes($this->cache_size()) . ')</button>
-							<p class="description">
-								' . __('Clear all cached data.', 'ip2location-country-blocker') . '
-							</p>
-							<input type="hidden" id="cache_nonce" value="' . wp_create_nonce('cache') . '">
 						</td>
 					</tr>
 				</table>
@@ -2151,11 +2157,8 @@ class IP2LocationCountryBlocker
 			return;
 		}
 
-		// Clear cache older than 3 days
+		// Clear cache older than 3 days.
 		$this->cache_clear(3);
-
-		// add_action('wp_enqueue_script', 'load_jquery');
-		// wp_enqueue_style('iplcb-custom-css', plugins_url('/assets/css/customs.css', __FILE__), [], null);
 	}
 
 	public function check_block()
@@ -2168,12 +2171,12 @@ class IP2LocationCountryBlocker
 			return;
 		}
 
-		// Disable redirection on administrator session
+		// Disable redirection on administrator session.
 		if (current_user_can('administrator')) {
 			return;
 		}
 
-		// Ignore internal XHR & cron
+		// Ignore internal XHR & cron.
 		if (isset($_SERVER['SCRIPT_NAME'])) {
 			if (in_array(basename($_SERVER['SCRIPT_NAME']), ['admin-ajax.php', 'ajax.php', 'cron.php', 'wp-cron.php'])) {
 				return;
@@ -2190,7 +2193,7 @@ class IP2LocationCountryBlocker
 		header('Cache-Control: max-age=0, no-cache, no-store, must-revalidate');
 		header('Pragma: no-cache');
 
-		// Backend
+		// Backend.
 		if ($this->is_backend_page()) {
 			if (!$this->get_option('backend_enabled')) {
 				$this->write_debug_log('Backend blocking is disabled.');
@@ -2310,7 +2313,7 @@ class IP2LocationCountryBlocker
 				);
 
 				if ($total >= $this->get_option('backend_auto_block_threshold')) {
-					// Add client IP into blacklist
+					// Add client IP into blacklist.
 					$this->update_option('backend_ip_blacklist', trim($this->get_option('backend_ip_blacklist') . ';' . $this->ip(), ';'));
 				}
 
@@ -2321,7 +2324,7 @@ class IP2LocationCountryBlocker
 			}
 		}
 
-		// Frontend
+		// Frontend.
 		else {
 			if (!$this->get_option('frontend_enabled')) {
 				$this->write_debug_log('Frontend blocking is disabled.');
@@ -2423,7 +2426,7 @@ class IP2LocationCountryBlocker
 				);
 
 				if ($total >= $this->get_option('frontend_auto_block_threshold')) {
-					// Add client IP into blacklist
+					// Add client IP into blacklist.
 					$this->update_option('frontend_ip_blacklist', trim($this->get_option('frontend_ip_blacklist') . ';' . $this->ip(), ';'));
 				}
 
@@ -2484,6 +2487,7 @@ class IP2LocationCountryBlocker
 		add_option('ip2location_country_blocker_frontend_whitelist_logged_user', '1');
 		add_option('ip2location_country_blocker_log_enabled', '0');
 		add_option('ip2location_country_blocker_lookup_mode', 'bin');
+		add_option('ip2location_country_blocker_lookup_cache_enabled', '1');
 		add_option('ip2location_country_blocker_px_api_key', '');
 		add_option('ip2location_country_blocker_px_database', '');
 		add_option('ip2location_country_blocker_px_lookup_mode', '');
@@ -2494,7 +2498,7 @@ class IP2LocationCountryBlocker
 
 		$this->create_table();
 
-		// Create scheduled task
+		// Create scheduled task.
 		if (!wp_next_scheduled('ip2location_country_blocker_hourly_event')) {
 			wp_schedule_event(time(), 'hourly', 'ip2location_country_blocker_hourly_event');
 		}
@@ -2528,10 +2532,10 @@ class IP2LocationCountryBlocker
 			$working_dir = IP2LOCATION_DIR . 'working' . \DIRECTORY_SEPARATOR;
 			$zip_file = $working_dir . 'database.zip';
 
-			// Remove existing working directory
+			// Remove existing working directory.
 			$wp_filesystem->delete($working_dir, true);
 
-			// Create working directory
+			// Create working directory.
 			$wp_filesystem->mkdir($working_dir);
 
 			if (!class_exists('WP_Http')) {
@@ -2540,7 +2544,7 @@ class IP2LocationCountryBlocker
 
 			$request = new WP_Http();
 
-			// Check download permission
+			// Check download permission.
 			$response = $request->request('https://www.ip2location.com/download-info?' . http_build_query([
 				'package' => $code,
 				'token'   => $token,
@@ -2550,7 +2554,7 @@ class IP2LocationCountryBlocker
 			$parts = explode(';', $response['body']);
 
 			if ($parts[0] != 'OK') {
-				// Download LITE version
+				// Download LITE version.
 				$code = 'DB1LITEBIN' . $ipv6;
 
 				$response = $request->request('https://www.ip2location.com/download-info?' . http_build_query([
@@ -2569,7 +2573,7 @@ class IP2LocationCountryBlocker
 				}
 			}
 
-			// Start downloading BIN database from IP2Location website
+			// Start downloading BIN database from IP2Location website.
 			$response = $request->request('https://www.ip2location.com/download?' . http_build_query([
 				'file'   => $code,
 				'token'  => $token,
@@ -2611,7 +2615,7 @@ class IP2LocationCountryBlocker
 				]));
 			}
 
-			// Unzip the package to working directory
+			// Unzip the package to working directory.
 			$result = unzip_file($zip_file, $working_dir);
 
 			// Once extracted, delete the package.
@@ -2626,7 +2630,7 @@ class IP2LocationCountryBlocker
 				]));
 			}
 
-			// File the BIN database
+			// File the BIN database.
 			$bin_database = '';
 			$files = scandir($working_dir);
 
@@ -2639,7 +2643,7 @@ class IP2LocationCountryBlocker
 				}
 			}
 
-			// Move file to IP2Location directory
+			// Move file to IP2Location directory.
 			$wp_filesystem->move($working_dir . $bin_database, IP2LOCATION_DIR . $bin_database, true);
 
 			$this->update_option('lookup_mode', 'bin');
@@ -2647,10 +2651,10 @@ class IP2LocationCountryBlocker
 			$this->update_option('token', $token);
 			$this->update_option('download_ipv4_only', ($ipv4_only) ? 1 : 0);
 
-			// Remove working directory
+			// Remove working directory.
 			$wp_filesystem->delete($working_dir, true);
 
-			// Flush caches
+			// Flush caches.
 			$this->cache_flush();
 
 			exit(json_encode([
@@ -2691,13 +2695,13 @@ class IP2LocationCountryBlocker
 			$working_dir = IP2LOCATION_DIR . 'working' . \DIRECTORY_SEPARATOR;
 			$zip_file = $working_dir . 'database.zip';
 
-			// Remove existing working directory
+			// Remove existing working directory.
 			$wp_filesystem->delete($working_dir, true);
 
-			// Create working directory
+			// Create working directory.
 			$wp_filesystem->mkdir($working_dir);
 
-			// Check download permission
+			// Check download permission.
 			$response = wp_remote_get('https://www.ip2location.com/download-info?' . http_build_query([
 				'package' => $code,
 				'token'   => $token,
@@ -2707,7 +2711,7 @@ class IP2LocationCountryBlocker
 			$parts = explode(';', $response['body']);
 
 			if ($parts[0] != 'OK') {
-				// Download LITE version
+				// Download LITE version.
 				$code = 'PX2LITEBIN';
 
 				$response = wp_remote_get('https://www.ip2location.com/download-info?' . http_build_query([
@@ -2726,7 +2730,7 @@ class IP2LocationCountryBlocker
 				}
 			}
 
-			// Start downloading BIN database from IP2Location website
+			// Start downloading BIN database from IP2Location website.
 			$tmp_file = download_url('https://www.ip2location.com/download?' . http_build_query([
 				'file'   => $code,
 				'token'  => $token,
@@ -2755,7 +2759,7 @@ class IP2LocationCountryBlocker
 				]));
 			}
 
-			// Unzip the package to working directory
+			// Unzip the package to working directory.
 			$result = unzip_file($zip_file, $working_dir);
 
 			// Once extracted, delete the package.
@@ -2770,7 +2774,7 @@ class IP2LocationCountryBlocker
 				]));
 			}
 
-			// File the BIN database
+			// File the BIN database.
 			$bin_database = '';
 			$files = scandir($working_dir);
 
@@ -2783,7 +2787,7 @@ class IP2LocationCountryBlocker
 				}
 			}
 
-			// Move file to IP2Location directory
+			// Move file to IP2Location directory.
 			$wp_filesystem->move($working_dir . $bin_database, IP2LOCATION_DIR . $bin_database, true);
 
 			$this->update_option('px_lookup_mode', 'px_bin');
@@ -2791,7 +2795,7 @@ class IP2LocationCountryBlocker
 			$this->update_option('token', $token);
 			$this->update_option('download_ipv4_only', ($ipv4_only) ? 1 : 0);
 
-			// Remove working directory
+			// Remove working directory.
 			$wp_filesystem->delete($working_dir, true);
 
 			// Flush caches
@@ -2825,7 +2829,7 @@ class IP2LocationCountryBlocker
 		try {
 			$token = $this->post('token');
 
-			// Check download permission
+			// Check download permission.
 			$response = wp_remote_get('https://www.ip2location.com/download-info?' . http_build_query([
 				'package' => 'DB1BIN',
 				'token'   => $token,
@@ -2909,7 +2913,7 @@ class IP2LocationCountryBlocker
 				]));
 			}
 
-			// Check download permission
+			// Check download permission.
 			$response = wp_remote_get('https://api.ip2location.io/?' . http_build_query([
 				'key'    => $apiKey,
 				'source' => 'wp_country_blocker',
@@ -2973,7 +2977,7 @@ class IP2LocationCountryBlocker
 
 		$contents = file_get_contents($_FILES['restore_file']['tmp_name']);
 
-		// Reject oversized files (2 MB cap).
+		// Reject oversized files (>2 MB).
 		if (strlen($contents) > 2097152) {
 			exit(json_encode([
 				'status'  => 'ERROR',
@@ -2991,7 +2995,7 @@ class IP2LocationCountryBlocker
 		}
 
 		foreach ($rows as $key => $value) {
-			// Skip invalid options
+			// Skip invalid options.
 			if (!is_string($key) || !in_array(str_replace('ip2location_country_blocker_', '', $key), $this->allowed_options)) {
 				continue;
 			}
@@ -3042,59 +3046,75 @@ class IP2LocationCountryBlocker
 	// Enqueue the script.
 	public function plugin_enqueues($hook)
 	{
-		wp_enqueue_style('iplcb-styles-css', untrailingslashit(plugins_url('/', __FILE__)) . '/assets/css/styles.css', []);
+		// Deactivation feedback modal on the Plugins screen
+		if ($hook == 'plugins.php') {
+			wp_enqueue_script('jquery-ui-dialog');
+			wp_enqueue_style('wp-jquery-ui-dialog');
+			wp_enqueue_script('iplcb-feedback-js', plugins_url('/assets/js/feedback.js', __FILE__), ['jquery'], null, true);
 
-		if (!$this->is_setup_completed() && $hook != 'country-blocker_page_ip2location-country-blocker-settings') {
-			wp_enqueue_script('iplcb-settings-js', plugins_url('/assets/js/settings.js', __FILE__), ['jquery'], null, true);
+			return;
 		}
 
-		switch ($hook) {
-			case 'plugins.php':
-				wp_enqueue_script('jquery-ui-dialog');
-				wp_enqueue_style('wp-jquery-ui-dialog');
+		// Identify the page from the menu slug.
+		$page = $this->get('page');
 
-				wp_enqueue_script('iplcb-feedback-js', plugins_url('/assets/js/feedback.js', __FILE__), ['jquery'], null, true);
+		$pages = [
+			'ip2location-country-blocker'            => 'frontend',
+			'ip2location-country-blocker-backend'    => 'backend',
+			'ip2location-country-blocker-statistics' => 'statistics',
+			'ip2location-country-blocker-settings'   => 'settings',
+		];
 
-				break;
+		if (!isset($pages[$page])) {
+			return;
+		}
 
-			case 'toplevel_page_ip2location-country-blocker':
-				add_action('wp_enqueue_script', 'load_jquery');
+		$page = $pages[$page];
 
+		// Shared stylesheet, scoped to the plugin's own pages only.
+		wp_enqueue_style('iplcb-styles-css', untrailingslashit(plugins_url('/', __FILE__)) . '/assets/css/styles.css');
+
+		// Until setup is complete, every plugin page renders the setup wizard.
+		if (!$this->is_setup_completed() && $page != 'settings') {
+			wp_enqueue_script('iplcb-settings-js', plugins_url('/assets/js/settings.js', __FILE__), ['jquery', 'iplcb-jquery-upload-file-js'], null, true);
+
+			return;
+		}
+
+		switch ($page) {
+			case 'frontend':
 				wp_enqueue_script('iplcb-frontend-js', plugins_url('/assets/js/frontend.js', __FILE__), ['jquery'], null, true);
-				wp_enqueue_script('iplcb-tagsinput-js', plugins_url('/assets/js/jquery.tagsinput.min.js', __FILE__), [], null, true);
-				wp_enqueue_script('iplcb-chosen-js', plugins_url('/assets/js/chosen.jquery.min.js', __FILE__), [], null, true);
+				wp_enqueue_script('iplcb-tagsinput-js', plugins_url('/assets/js/jquery.tagsinput.min.js', __FILE__), ['jquery'], null, true);
+				wp_enqueue_script('iplcb-chosen-js', plugins_url('/assets/js/chosen.jquery.min.js', __FILE__), ['jquery'], null, true);
 
-				wp_enqueue_style('iplcb-customs-css', plugins_url('/', __FILE__) . '/assets/css/customs.css', []);
-				wp_enqueue_style('iplcb-tagsinput-css', plugins_url('/', __FILE__) . '/assets/css/jquery.tagsinput.min.css', []);
-				wp_enqueue_style('iplcb-chosen-css', plugins_url('/', __FILE__) . '/assets/css/chosen.min.css', []);
-
-				break;
-
-			case 'country-blocker_page_ip2location-country-blocker-backend':
-				add_action('wp_enqueue_script', 'load_jquery');
-
-				wp_enqueue_script('iplcb-frontend-js', plugins_url('/assets/js/backend.js', __FILE__), ['jquery'], null, true);
-				wp_enqueue_script('iplcb-tagsinput-js', plugins_url('/assets/js/jquery.tagsinput.min.js', __FILE__), [], null, true);
-				wp_enqueue_script('iplcb-chosen-js', plugins_url('/assets/js/chosen.jquery.min.js', __FILE__), [], null, true);
-
-				wp_enqueue_style('iplcb-tagsinput-css', plugins_url('/', __FILE__) . '/assets/css/jquery.tagsinput.min.css', []);
-				wp_enqueue_style('iplcb-chosen-css', plugins_url('/', __FILE__) . '/assets/css/chosen.min.css', []);
+				wp_enqueue_style('iplcb-customs-css', plugins_url('/assets/css/customs.css', __FILE__), [], null);
+				wp_enqueue_style('iplcb-tagsinput-css', plugins_url('/assets/css/jquery.tagsinput.min.css', __FILE__), [], null);
+				wp_enqueue_style('iplcb-chosen-css', plugins_url('/assets/css/chosen.min.css', __FILE__), [], null);
 
 				break;
 
-			case 'country-blocker_page_ip2location-country-blocker-statistics':
-				wp_enqueue_script('iplcb-chart-js', plugins_url('/assets/js/chart-js.min.js', __FILE__), ['jquery'], null, true);
-				wp_enqueue_script('iplcb-statistics-js', plugins_url('/assets/js/statistics.js', __FILE__), [], null, true);
+			case 'backend':
+				wp_enqueue_script('iplcb-backend-js', plugins_url('/assets/js/backend.js', __FILE__), ['jquery'], null, true);
+				wp_enqueue_script('iplcb-tagsinput-js', plugins_url('/assets/js/jquery.tagsinput.min.js', __FILE__), ['jquery'], null, true);
+				wp_enqueue_script('iplcb-chosen-js', plugins_url('/assets/js/chosen.jquery.min.js', __FILE__), ['jquery'], null, true);
+
+				wp_enqueue_style('iplcb-tagsinput-css', plugins_url('/assets/css/jquery.tagsinput.min.css', __FILE__), [], null);
+				wp_enqueue_style('iplcb-chosen-css', plugins_url('/assets/css/chosen.min.css', __FILE__), [], null);
+
 				break;
 
-			case 'country-blocker_page_ip2location-country-blocker-settings':
-				wp_register_script('iplcb-jquery-upload-file-js', 'https://cdnjs.cloudflare.com/ajax/libs/jquery-file-upload/4.0.11/jquery.uploadfile.min.js', null, null, true);
-				wp_enqueue_script('iplcb-jquery-upload-file-js');
+			case 'statistics':
+				wp_enqueue_script('iplcb-chart-js', plugins_url('/assets/js/chart-js.min.js', __FILE__), [], null, true);
+				wp_enqueue_script('iplcb-statistics-js', plugins_url('/assets/js/statistics.js', __FILE__), ['jquery'], null, true);
 
-				wp_register_style('iplcb-jquery-upload-file-css', 'https://cdnjs.cloudflare.com/ajax/libs/jquery-file-upload/4.0.11/uploadfile.min.css');
-				wp_enqueue_style('iplcb-jquery-upload-file-css');
+				break;
 
-				wp_enqueue_script('iplcb-settings-js', plugins_url('/assets/js/settings.js', __FILE__), ['jquery'], null, true);
+			case 'settings':
+				wp_enqueue_script('jquery-form');
+				wp_enqueue_script('iplcb-jquery-upload-file-js', plugins_url('/assets/js/jquery.uploadfile.min.js', __FILE__), ['jquery', 'jquery-form'], null, true);
+				wp_enqueue_style('iplcb-jquery-upload-file-css', plugins_url('/assets/css/uploadfile.min.css', __FILE__), [], null);
+				wp_enqueue_script('iplcb-settings-js', plugins_url('/assets/js/settings.js', __FILE__), ['jquery', 'iplcb-jquery-upload-file-js'], null, true);
+
 				break;
 		}
 	}
@@ -3320,8 +3340,6 @@ class IP2LocationCountryBlocker
 			}
 
 			// Remove all existing occurrences first to avoid duplicate entries,
-			// then prepend exactly one copy. Duplicates in active_plugins break
-			// plugin deactivation (WordPress removes only the first occurrence).
 			$expected = array_values(array_diff($active_plugins, [$this_plugin]));
 			array_unshift($expected, $this_plugin);
 
@@ -3399,7 +3417,7 @@ class IP2LocationCountryBlocker
 
 		// Possible using CloudFlare service
 		if (isset($_SERVER['HTTP_CF_CONNECTING_IP']) && filter_var($_SERVER['HTTP_CF_CONNECTING_IP'], FILTER_VALIDATE_IP)) {
-			// Make sure originated IP is coming from CloudFlare network
+			// Make sure originated IP is coming from CloudFlare network.
 			$networks = [
 				'173.245.48.0/20',
 				'103.21.244.0/22',
@@ -3432,9 +3450,9 @@ class IP2LocationCountryBlocker
 			}
 		}
 
-		// Possible Securi Firewall
+		// Possible Securi Firewall.
 		if (isset($_SERVER['HTTP_X_FORWARDED_FOR']) && filter_var($_SERVER['HTTP_X_FORWARDED_FOR'], FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-			// Make sure originated IP is coming from Securi network
+			// Make sure originated IP is coming from Securi network.
 			$networks = [
 				'192.88.134.0/23',
 				'185.93.228.0/22',
@@ -3450,14 +3468,14 @@ class IP2LocationCountryBlocker
 			}
 		}
 
-		// Possible local reverse proxy server
+		// Possible local reverse proxy server.
 		if (!filter_var($_SERVER['REMOTE_ADDR'], FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
 			if (isset($_SERVER['HTTP_X_REAL_IP']) && filter_var($_SERVER['HTTP_X_REAL_IP'], \FILTER_VALIDATE_IP, \FILTER_FLAG_NO_PRIV_RANGE | \FILTER_FLAG_NO_RES_RANGE)) {
 				return $_SERVER['HTTP_X_REAL_IP'];
 			}
 
 			if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-				// Get server IP address
+				// Get server IP address.
 				$server_ip = (isset($_SERVER['SERVER_ADDR'])) ? $_SERVER['SERVER_ADDR'] : '';
 
 				$ip = trim(current(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])));
@@ -3710,7 +3728,7 @@ class IP2LocationCountryBlocker
 	private function get_location($ip)
 	{
 		// Read result from cache to prevent duplicate lookup.
-		if ($data = $this->cache_get($ip)) {
+		if ($this->get_option('lookup_cache_enabled') !== '0' && $data = $this->cache_get($ip)) {
 			$this->session['country'] = $data->country_code;
 			$this->session['country_name'] = $data->country_name;
 			$this->session['is_proxy'] = $data->is_proxy;
@@ -3733,7 +3751,7 @@ class IP2LocationCountryBlocker
 		];
 
 		switch ($this->get_option('lookup_mode')) {
-			// IP2Location Web Service
+			// IP2Location Web Service.
 			case 'ws':
 				$this->session['lookup_mode'] = 'WS';
 
@@ -3783,7 +3801,7 @@ class IP2LocationCountryBlocker
 
 				break;
 
-				// Local BIN database
+				// Local BIN database.
 			default:
 				$this->session['lookup_mode'] = 'BIN';
 
@@ -3809,7 +3827,7 @@ class IP2LocationCountryBlocker
 		}
 
 		switch ($this->get_option('px_lookup_mode')) {
-			// IP2Location Web Service
+			// IP2Location Web Service.
 			case 'px_ws':
 				$this->session['lookup_mode'] = 'WS';
 
@@ -3868,7 +3886,7 @@ class IP2LocationCountryBlocker
 				}
 				break;
 
-				// Local BIN database
+				// Local BIN database.
 			case 'px_bin':
 				if (!$this->get_option('px_database')) {
 					break;
@@ -3896,7 +3914,9 @@ class IP2LocationCountryBlocker
 				break;
 		}
 
-		$this->cache_add($ip, $caches);
+		if ($this->get_option('lookup_cache_enabled') !== '0') {
+			$this->cache_add($ip, $caches);
+		}
 		$this->session['country'] = $caches['country_code'];
 		$this->session['is_proxy'] = $caches['is_proxy'];
 		$this->session['proxy_type'] = $caches['proxy_type'];
@@ -3911,7 +3931,7 @@ class IP2LocationCountryBlocker
 
 	private function in_array($ip, $list_name)
 	{
-		// Expand IPv6
+		// Expand IPv6.
 		if (filter_var($ip, \FILTER_VALIDATE_IP, \FILTER_FLAG_IPV6)) {
 			$ip = implode(':', str_split(unpack('H*0', inet_pton($ip))[0], 4));
 		}
@@ -3920,7 +3940,7 @@ class IP2LocationCountryBlocker
 
 		if (count($rows) > 0) {
 			foreach ($rows as $row) {
-				// Expand IPv6
+				// Expand IPv6.
 				if (filter_var($row, \FILTER_VALIDATE_IP, \FILTER_FLAG_IPV6)) {
 					$row = implode(':', str_split(unpack('H*0', inet_pton($row))[0], 4));
 				}
@@ -4103,17 +4123,17 @@ class IP2LocationCountryBlocker
 			if (strpos($part, '/') !== false) {
 				list($ip, $range) = explode('/', $part);
 
-				// Skip invalid IP address
+				// Skip invalid IP address.
 				if (!filter_var($ip, \FILTER_VALIDATE_IP)) {
 					continue;
 				}
 
-				// Invalid IPv4 range
+				// Invalid IPv4 range.
 				if (filter_var($ip, \FILTER_VALIDATE_IP, \FILTER_FLAG_IPV4) && ((int) $range < 1 || (int) $range > 32)) {
 					continue;
 				}
 
-				// Invalid IPv6 range
+				// Invalid IPv6 range.
 				if (filter_var($ip, \FILTER_VALIDATE_IP, \FILTER_FLAG_IPV6) && ((int) $range < 1 || (int) $range > 128)) {
 					continue;
 				}

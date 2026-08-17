@@ -5,7 +5,7 @@ Donate link: https://www.ip2location.com
 Tags: ip2location, block country, block proxy, redirection, ip address, 403, ipv4, ipv6, detect proxy, ip2proxy, ip geolocation
 Requires at least: 4.6
 Tested up to: 7.0
-Stable tag: 2.43.0
+Stable tag: 2.43.3
 
 Blocks unwanted visitors from accessing your frontend (blog pages) or backend (admin area) by countries or proxy servers.
 
@@ -91,6 +91,9 @@ Send us email at support@ip2location.com
 
 
 == Changelog ==
+* 2.43.3 Pumped version number.
+* 2.43.2 Added option to enable/disable lookup cache. Fixed script enqueue issues when WordPress primary language is not English.
+* 2.43.1 Fixed missing closing tag in settings page.
 * 2.43.0 Added custom 403 error page HTML, IP blacklist/whitelist export, and IP import validation feedback. Improve statistics page.
 * 2.42.3 Fixed backend blocking not applied on admin pages. Fixed frontend rate limit cleanup table. Restored frontend email notification.
 * 2.42.2 Fix API Key validation issue.
