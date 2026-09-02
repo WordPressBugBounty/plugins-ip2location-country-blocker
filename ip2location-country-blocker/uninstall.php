@@ -22,7 +22,7 @@ delete_option('ip2location_country_blocker_backend_skip_bots');
 delete_option('ip2location_country_blocker_bypass_code');
 delete_option('ip2location_country_blocker_database');
 delete_option('ip2location_country_blocker_debug_log_enabled');
-delete_option('ip2location_country_blocker_detect_forwarder_ip');
+delete_option('ip2location_country_blocker_trust_x_forwarded_for');
 delete_option('ip2location_country_blocker_download_ipv4_only');
 delete_option('ip2location_country_blocker_email_notification');
 delete_option('ip2location_country_blocker_frontend_auto_block_threshold');
