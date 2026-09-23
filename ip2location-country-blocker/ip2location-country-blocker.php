@@ -4,7 +4,7 @@
  * Plugin Name: IP2Location Country Blocker
  * Plugin URI: https://ip2location.com/resources/wordpress-ip2location-country-blocker
  * Description: Block visitors from accessing your website or admin area by their country.
- * Version: 2.45.0
+ * Version: 2.45.1
  * Requires PHP: 7.4
  * Author: IP2Location
  * Author URI: https://www.ip2location.com
@@ -39,10 +39,19 @@ add_action('wp_footer', [$ip2location_country_blocker, 'footer']);
 add_action('wp_ajax_ip2location_country_blocker_submit_feedback', [$ip2location_country_blocker, 'submit_feedback']);
 add_action('admin_footer_text', [$ip2location_country_blocker, 'admin_footer_text']);
 add_action('ip2location_country_blocker_hourly_event', [$ip2location_country_blocker, 'hourly_event']);
+add_action('init', [$ip2location_country_blocker, 'schedule_events'], 0);
+add_action('init', [$ip2location_country_blocker, 'prune_cache'], 2);
 add_action('admin_post_ip2location_country_blocker_export_ip_list', [$ip2location_country_blocker, 'export_ip_list']);
 
 class IP2LocationCountryBlocker
 {
+	// Lookup-cache housekeeping. A per-visitor JSON file is written for every
+	// distinct IP, so the directory needs a hard ceiling as well as a TTL:
+	// a TTL alone leaves the file count unbounded on a busy site (and can
+	// exhaust the host's inode quota).
+	const CACHE_MAX_FILES = 10000;
+	const CACHE_TTL_HOURS = 6;
+
 	private $session = [
 		'country'     => '??',
 		'is_proxy'    => '??',
@@ -2158,7 +2167,7 @@ class IP2LocationCountryBlocker
 		}
 
 		// Clear cache older than 3 days.
-		$this->cache_clear(3);
+		$this->cache_clear(72);
 	}
 
 	public function check_block()
@@ -2504,9 +2513,7 @@ class IP2LocationCountryBlocker
 		$this->create_table();
 
 		// Create scheduled task.
-		if (!wp_next_scheduled('ip2location_country_blocker_hourly_event')) {
-			wp_schedule_event(time(), 'hourly', 'ip2location_country_blocker_hourly_event');
-		}
+		$this->schedule_events();
 	}
 
 	public function update_ip2location_database()
@@ -3245,6 +3252,44 @@ class IP2LocationCountryBlocker
 		}
 	}
 
+	/**
+	 * (Re)register the maintenance cron event.
+	 *
+	 * Called on every load, not just on activation: register_activation_hook()
+	 * does not fire when a plugin is *updated*, so a site that upgraded into a
+	 * version carrying this event - or whose cron array was reset by a migration
+	 * or restore - would never schedule it and the cache directory would grow
+	 * without bound.
+	 */
+	public function schedule_events()
+	{
+		if (!wp_next_scheduled('ip2location_country_blocker_hourly_event')) {
+			wp_schedule_event(time(), 'hourly', 'ip2location_country_blocker_hourly_event');
+		}
+	}
+
+	/**
+	 * Opportunistic cleanup for sites where WP-Cron is disabled or unreachable.
+	 *
+	 * Runs at most once an hour and only on front-end requests, with a small
+	 * deletion budget, so a single visitor never pays for clearing a large
+	 * backlog. Together with schedule_events() this keeps the cache bounded
+	 * whether or not WP-Cron runs.
+	 */
+	public function prune_cache()
+	{
+		if (is_admin() || (defined('WP_CLI') && WP_CLI)) {
+			return;
+		}
+
+		if (get_transient('ip2location_country_blocker_cache_prune')) {
+			return;
+		}
+
+		set_transient('ip2location_country_blocker_cache_prune', 1, HOUR_IN_SECONDS);
+
+		$this->cache_clear(self::CACHE_TTL_HOURS, 2000);
+	}
 	public function hourly_event()
 	{
 		$this->cache_clear();
@@ -4012,33 +4057,112 @@ class IP2LocationCountryBlocker
 		return null;
 	}
 
-	private function cache_clear($day = 1)
+	/**
+	 * Remove expired cache files and enforce the hard file-count ceiling.
+	 *
+	 * Growth is bounded two ways: entries older than $ttl_hours are dropped, and
+	 * the directory is never allowed to hold more than CACHE_MAX_FILES entries
+	 * (oldest evicted first). Deletions per run are capped by $budget so that a
+	 * directory which has already grown huge cannot exhaust the request's
+	 * time/memory limit - repeated runs converge on the target size.
+	 */
+	private function cache_clear($ttl_hours = self::CACHE_TTL_HOURS, $budget = 20000)
 	{
-		require_once ABSPATH . 'wp-admin/includes/file.php';
-		WP_Filesystem();
-		global $wp_filesystem;
+		$dir = IP2LOCATION_DIR . 'caches' . \DIRECTORY_SEPARATOR;
 
-		$now = time();
-		$files = scandir(IP2LOCATION_DIR . 'caches');
+		if (!is_dir($dir)) {
+			return;
+		}
+
+		$files = @scandir($dir);
+
+		if (!$files) {
+			return;
+		}
+
+		$expire = time() - (60 * 60 * $ttl_hours);
+		$entries = [];
 
 		foreach ($files as $file) {
-			if (substr($file, -5) == '.json') {
-				if ($now - filemtime(IP2LOCATION_DIR . 'caches' . \DIRECTORY_SEPARATOR . $file) >= 60 * 60 * 24 * $day) {
-					$wp_filesystem->delete(IP2LOCATION_DIR . 'caches' . \DIRECTORY_SEPARATOR . $file);
-				}
+			if (substr($file, -5) != '.json') {
+				continue;
+			}
+
+			$mtime = @filemtime($dir . $file);
+
+			if ($mtime !== false) {
+				$entries[$dir . $file] = $mtime;
 			}
 		}
+
+		// 1. Drop expired entries.
+		foreach ($entries as $path => $mtime) {
+			if ($budget <= 0) {
+				return;
+			}
+
+			if ($mtime < $expire) {
+				$this->cache_delete($path);
+				unset($entries[$path]);
+				$budget--;
+			}
+		}
+
+		// 2. Enforce the ceiling, evicting the oldest entries first.
+		$excess = count($entries) - self::CACHE_MAX_FILES;
+
+		if ($excess <= 0) {
+			return;
+		}
+
+		asort($entries);
+
+		foreach ($entries as $path => $mtime) {
+			if ($excess <= 0 || $budget <= 0) {
+				return;
+			}
+
+			$this->cache_delete($path);
+			$excess--;
+			$budget--;
+		}
+	}
+
+	/**
+	 * Delete a single cache file.
+	 *
+	 * WP_Filesystem() returns false when it cannot resolve a direct filesystem
+	 * method (which happens in some cron/AJAX contexts), leaving $wp_filesystem
+	 * null - calling delete() on it is a fatal error that silently kills the
+	 * cleanup job. Fall back to unlink() in that case.
+	 */
+	private function cache_delete($path)
+	{
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+
+		if (empty($GLOBALS['wp_filesystem'])) {
+			WP_Filesystem();
+		}
+
+		if (!empty($GLOBALS['wp_filesystem']) && is_object($GLOBALS['wp_filesystem'])) {
+			return $GLOBALS['wp_filesystem']->delete($path);
+		}
+
+		return @unlink($path);
 	}
 
 	private function cache_size()
 	{
 		$size = 0;
+		$files = @scandir(IP2LOCATION_DIR . 'caches');
 
-		$files = scandir(IP2LOCATION_DIR . 'caches');
+		if (!$files) {
+			return 0;
+		}
 
 		foreach ($files as $file) {
 			if (substr($file, -5) == '.json') {
-				$size += filesize(IP2LOCATION_DIR . 'caches' . \DIRECTORY_SEPARATOR . $file);
+				$size += (int) @filesize(IP2LOCATION_DIR . 'caches' . \DIRECTORY_SEPARATOR . $file);
 			}
 		}
 
@@ -4047,19 +4171,19 @@ class IP2LocationCountryBlocker
 
 	private function cache_flush()
 	{
-		require_once ABSPATH . 'wp-admin/includes/file.php';
-		WP_Filesystem();
-		global $wp_filesystem;
+		$dir = IP2LOCATION_DIR . 'caches' . \DIRECTORY_SEPARATOR;
+		$files = @scandir($dir);
 
-		$files = scandir(IP2LOCATION_DIR . 'caches');
+		if (!$files) {
+			return;
+		}
 
 		foreach ($files as $file) {
 			if (substr($file, -5) == '.json') {
-				$wp_filesystem->delete(IP2LOCATION_DIR . 'caches' . \DIRECTORY_SEPARATOR . $file);
+				$this->cache_delete($dir . $file);
 			}
 		}
 	}
-
 	private function get_memory_limit()
 	{
 		$memory_limit = ini_get('memory_limit');
