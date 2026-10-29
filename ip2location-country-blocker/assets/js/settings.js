@@ -1,4 +1,8 @@
 jQuery(document).ready(function ($) {
+	$('.chosen').chosen({
+		width: '95%'
+	});
+
 	$('select#lookup_mode')
 		.on('change', function () {
 			if ($(this).val() == 'bin') {

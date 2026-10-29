@@ -4,20 +4,21 @@
  * Plugin Name: IP2Location Country Blocker
  * Plugin URI: https://ip2location.com/resources/wordpress-ip2location-country-blocker
  * Description: Block visitors from accessing your website or admin area by their country.
- * Version: 2.45.2
+ * Version: 2.46.0
  * Requires PHP: 7.4
  * Author: IP2Location
  * Author URI: https://www.ip2location.com
- * Text Domain: ip2location-country-blocker.
+ * License: GPLv2 or later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain: ip2location-country-blocker
  */
+if (!defined('ABSPATH')) {
+	exit;
+}
+
 defined('FS_METHOD') || define('FS_METHOD', 'direct');
 defined('IP2LOCATION_DIR') || define('IP2LOCATION_DIR', str_replace(['/', '\\'], \DIRECTORY_SEPARATOR, wp_upload_dir()['basedir']) . \DIRECTORY_SEPARATOR . 'ip2location' . \DIRECTORY_SEPARATOR);
 define('IPLCB_ROOT', __DIR__ . \DIRECTORY_SEPARATOR);
-
-// For development usage.
-if (isset($_SERVER['DEV_MODE'])) {
-	$_SERVER['REMOTE_ADDR'] = '3.125.220.18';
-}
 
 require_once IPLCB_ROOT . 'vendor' . \DIRECTORY_SEPARATOR . 'autoload.php';
 
@@ -43,6 +44,14 @@ add_action('init', [$ip2location_country_blocker, 'schedule_events'], 0);
 add_action('init', [$ip2location_country_blocker, 'prune_cache'], 2);
 add_action('admin_post_ip2location_country_blocker_export_ip_list', [$ip2location_country_blocker, 'export_ip_list']);
 
+// WooCommerce restrictions (no-ops unless WooCommerce is active and the option is on).
+add_filter('woocommerce_is_purchasable', [$ip2location_country_blocker, 'woocommerce_is_purchasable']);
+add_filter('woocommerce_get_price_html', [$ip2location_country_blocker, 'woocommerce_get_price_html']);
+add_filter('woocommerce_add_to_cart_validation', [$ip2location_country_blocker, 'woocommerce_add_to_cart_validation']);
+add_action('woocommerce_checkout_process', [$ip2location_country_blocker, 'woocommerce_checkout_process']);
+// Block checkout (Cart/Checkout blocks) goes through the Store API instead.
+add_action('woocommerce_store_api_checkout_update_order_from_request', [$ip2location_country_blocker, 'woocommerce_store_api_checkout'], 10, 2);
+
 class IP2LocationCountryBlocker
 {
 	// Cache limits: maximum files kept and entry lifetime (hours).
@@ -58,7 +67,7 @@ class IP2LocationCountryBlocker
 	];
 
 	private $allowed_options = [
-		'access_email_notification', 'api_key', 'backend_auto_block_threshold', 'backend_banlist', 'backend_block_mode', 'backend_block_proxy', 'backend_bots_list', 'backend_enabled', 'backend_error_page', 'backend_ip_blacklist', 'backend_ip_whitelist', 'backend_option', 'backend_redirect_url', 'backend_skip_bots', 'bypass_code', 'custom_error_html', 'database', 'debug_log_enabled', 'trust_x_forwarded_for', 'download_ipv4_only', 'email_notification', 'frontend_auto_block_threshold', 'frontend_banlist', 'frontend_block_mode', 'frontend_block_proxy', 'frontend_block_proxy_type', 'frontend_bots_list', 'frontend_enabled', 'frontend_error_page', 'frontend_ip_blacklist', 'frontend_ip_whitelist', 'frontend_option', 'frontend_redirect_url', 'frontend_skip_bots', 'frontend_whitelist_logged_user', 'log_enabled', 'lookup_cache_enabled', 'lookup_mode', 'px_api_key', 'px_database', 'px_lookup_mode', 'real_ip_header', 'session_message', 'show_logo', 'token',
+		'access_email_notification', 'api_key', 'backend_auto_block_threshold', 'backend_banlist', 'backend_block_mode', 'backend_block_proxy', 'backend_bots_list', 'backend_enabled', 'backend_error_page', 'backend_ip_blacklist', 'backend_ip_whitelist', 'backend_option', 'backend_redirect_url', 'backend_skip_bots', 'bypass_code', 'bypass_logged_in', 'bypass_roles', 'custom_error_html', 'database', 'debug_ip', 'debug_log_enabled', 'trust_x_forwarded_for', 'download_ipv4_only', 'email_notification', 'frontend_auto_block_threshold', 'frontend_banlist', 'frontend_block_mode', 'frontend_block_proxy', 'frontend_block_proxy_type', 'frontend_bots_list', 'frontend_enabled', 'frontend_error_page', 'frontend_ip_blacklist', 'frontend_ip_whitelist', 'frontend_option', 'frontend_redirect_url', 'frontend_skip_bots', 'frontend_whitelist_logged_user', 'log_enabled', 'lookup_cache_enabled', 'lookup_mode', 'px_api_key', 'px_database', 'px_lookup_mode', 'real_ip_header', 'session_message', 'show_logo', 'token', 'woocommerce_banlist', 'woocommerce_enabled', 'woocommerce_message', 'woocommerce_mode',
 	];
 
 	private $countries = ['AF' => 'Afghanistan', 'AX' => 'Aland Islands', 'AL' => 'Albania', 'DZ' => 'Algeria', 'AS' => 'American Samoa', 'AD' => 'Andorra', 'AO' => 'Angola', 'AI' => 'Anguilla', 'AQ' => 'Antarctica', 'AG' => 'Antigua and Barbuda', 'AR' => 'Argentina', 'AM' => 'Armenia', 'AW' => 'Aruba', 'AU' => 'Australia', 'AT' => 'Austria', 'AZ' => 'Azerbaijan', 'BS' => 'Bahamas', 'BH' => 'Bahrain', 'BD' => 'Bangladesh', 'BB' => 'Barbados', 'BY' => 'Belarus', 'BE' => 'Belgium', 'BZ' => 'Belize', 'BJ' => 'Benin', 'BM' => 'Bermuda', 'BT' => 'Bhutan', 'BO' => 'Bolivia (Plurinational State of)', 'BQ' => 'Bonaire, Sint Eustatius and Saba', 'BA' => 'Bosnia and Herzegovina', 'BW' => 'Botswana', 'BV' => 'Bouvet Island', 'BR' => 'Brazil', 'IO' => 'British Indian Ocean Territory', 'BN' => 'Brunei Darussalam', 'BG' => 'Bulgaria', 'BF' => 'Burkina Faso', 'BI' => 'Burundi', 'CV' => 'Cabo Verde', 'KH' => 'Cambodia', 'CM' => 'Cameroon', 'CA' => 'Canada', 'KY' => 'Cayman Islands', 'CF' => 'Central African Republic', 'TD' => 'Chad', 'CL' => 'Chile', 'CN' => 'China', 'CX' => 'Christmas Island', 'CC' => 'Cocos (Keeling) Islands', 'CO' => 'Colombia', 'KM' => 'Comoros', 'CG' => 'Congo', 'CD' => 'Congo (Democratic Republic of the)', 'CK' => 'Cook Islands', 'CR' => 'Costa Rica', 'CI' => 'Cote D\'ivoire', 'HR' => 'Croatia', 'CU' => 'Cuba', 'CW' => 'Curacao', 'CY' => 'Cyprus', 'CZ' => 'Czechia', 'DK' => 'Denmark', 'DJ' => 'Djibouti', 'DM' => 'Dominica', 'DO' => 'Dominican Republic', 'EC' => 'Ecuador', 'EG' => 'Egypt', 'SV' => 'El Salvador', 'GQ' => 'Equatorial Guinea', 'ER' => 'Eritrea', 'EE' => 'Estonia', 'ET' => 'Ethiopia', 'FK' => 'Falkland Islands (Malvinas)', 'FO' => 'Faroe Islands', 'FJ' => 'Fiji', 'FI' => 'Finland', 'FR' => 'France', 'GF' => 'French Guiana', 'PF' => 'French Polynesia', 'TF' => 'French Southern Territories', 'GA' => 'Gabon', 'GM' => 'Gambia', 'GE' => 'Georgia', 'DE' => 'Germany', 'GH' => 'Ghana', 'GI' => 'Gibraltar', 'GR' => 'Greece', 'GL' => 'Greenland', 'GD' => 'Grenada', 'GP' => 'Guadeloupe', 'GU' => 'Guam', 'GT' => 'Guatemala', 'GG' => 'Guernsey', 'GN' => 'Guinea', 'GW' => 'Guinea-Bissau', 'GY' => 'Guyana', 'HT' => 'Haiti', 'HM' => 'Heard Island and Mcdonald Islands', 'VA' => 'Holy See', 'HN' => 'Honduras', 'HK' => 'Hong Kong', 'HU' => 'Hungary', 'IS' => 'Iceland', 'IN' => 'India', 'ID' => 'Indonesia', 'IR' => 'Iran (Islamic Republic of)', 'IQ' => 'Iraq', 'IE' => 'Ireland', 'IM' => 'Isle of Man', 'IL' => 'Israel', 'IT' => 'Italy', 'JM' => 'Jamaica', 'JP' => 'Japan', 'JE' => 'Jersey', 'JO' => 'Jordan', 'KZ' => 'Kazakhstan', 'KE' => 'Kenya', 'KI' => 'Kiribati', 'KP' => 'Korea (Democratic People\'s Republic of)', 'KR' => 'Korea (Republic of)', 'KW' => 'Kuwait', 'KG' => 'Kyrgyzstan', 'LA' => 'Lao People\'s Democratic Republic', 'LV' => 'Latvia', 'LB' => 'Lebanon', 'LS' => 'Lesotho', 'LR' => 'Liberia', 'LY' => 'Libya', 'LI' => 'Liechtenstein', 'LT' => 'Lithuania', 'LU' => 'Luxembourg', 'MO' => 'Macao', 'MK' => 'North Macedonia', 'MG' => 'Madagascar', 'MW' => 'Malawi', 'MY' => 'Malaysia', 'MV' => 'Maldives', 'ML' => 'Mali', 'MT' => 'Malta', 'MH' => 'Marshall Islands', 'MQ' => 'Martinique', 'MR' => 'Mauritania', 'MU' => 'Mauritius', 'YT' => 'Mayotte', 'MX' => 'Mexico', 'FM' => 'Micronesia (Federated States of)', 'MD' => 'Moldova (Republic of)', 'MC' => 'Monaco', 'MN' => 'Mongolia', 'ME' => 'Montenegro', 'MS' => 'Montserrat', 'MA' => 'Morocco', 'MZ' => 'Mozambique', 'MM' => 'Myanmar', 'NA' => 'Namibia', 'NR' => 'Nauru', 'NP' => 'Nepal', 'NL' => 'Netherlands', 'NC' => 'New Caledonia', 'NZ' => 'New Zealand', 'NI' => 'Nicaragua', 'NE' => 'Niger', 'NG' => 'Nigeria', 'NU' => 'Niue', 'NF' => 'Norfolk Island', 'MP' => 'Northern Mariana Islands', 'NO' => 'Norway', 'OM' => 'Oman', 'PK' => 'Pakistan', 'PW' => 'Palau', 'PS' => 'Palestine, State of', 'PA' => 'Panama', 'PG' => 'Papua New Guinea', 'PY' => 'Paraguay', 'PE' => 'Peru', 'PH' => 'Philippines', 'PN' => 'Pitcairn', 'PL' => 'Poland', 'PT' => 'Portugal', 'PR' => 'Puerto Rico', 'QA' => 'Qatar', 'RE' => 'Reunion', 'RO' => 'Romania', 'RU' => 'Russian Federation', 'RW' => 'Rwanda', 'BL' => 'Saint Barthelemy', 'SH' => 'Saint Helena, Ascension and Tristan da Cunha', 'KN' => 'Saint Kitts and Nevis', 'LC' => 'Saint Lucia', 'MF' => 'Saint Martin (French Part)', 'PM' => 'Saint Pierre and Miquelon', 'VC' => 'Saint Vincent and The Grenadines', 'WS' => 'Samoa', 'SM' => 'San Marino', 'ST' => 'Sao Tome and Principe', 'SA' => 'Saudi Arabia', 'SN' => 'Senegal', 'RS' => 'Serbia', 'SC' => 'Seychelles', 'SL' => 'Sierra Leone', 'SG' => 'Singapore', 'SX' => 'Sint Maarten (Dutch Part)', 'SK' => 'Slovakia', 'SI' => 'Slovenia', 'SB' => 'Solomon Islands', 'SO' => 'Somalia', 'ZA' => 'South Africa', 'GS' => 'South Georgia and The South Sandwich Islands', 'SS' => 'South Sudan', 'ES' => 'Spain', 'LK' => 'Sri Lanka', 'SD' => 'Sudan', 'SR' => 'Suriname', 'SJ' => 'Svalbard and Jan Mayen', 'SZ' => 'Eswatini', 'SE' => 'Sweden', 'CH' => 'Switzerland', 'SY' => 'Syrian Arab Republic', 'TW' => 'Taiwan (Province of China)', 'TJ' => 'Tajikistan', 'TZ' => 'Tanzania, United Republic of', 'TH' => 'Thailand', 'TL' => 'Timor-Leste', 'TG' => 'Togo', 'TK' => 'Tokelau', 'TO' => 'Tonga', 'TT' => 'Trinidad and Tobago', 'TN' => 'Tunisia', 'TR' => 'Turkey', 'TM' => 'Turkmenistan', 'TC' => 'Turks and Caicos Islands', 'TV' => 'Tuvalu', 'UG' => 'Uganda', 'UA' => 'Ukraine', 'AE' => 'United Arab Emirates', 'GB' => 'United Kingdom of Great Britain and Northern Ireland', 'US' => 'United States', 'UM' => 'United States Minor Outlying Islands', 'UY' => 'Uruguay', 'UZ' => 'Uzbekistan', 'VU' => 'Vanuatu', 'VE' => 'Venezuela (Bolivarian Republic of)', 'VN' => 'Viet Nam', 'VG' => 'Virgin Islands (British)', 'VI' => 'Virgin Islands (U.S.)', 'WF' => 'Wallis and Futuna', 'EH' => 'Western Sahara', 'YE' => 'Yemen', 'ZM' => 'Zambia', 'ZW' => 'Zimbabwe'];
@@ -171,7 +180,7 @@ class IP2LocationCountryBlocker
 	public function export_ip_list()
 	{
 		if (!current_user_can('manage_options')) {
-			wp_die(__('Sorry, you are not allowed to access this page.'), 403);
+			wp_die(esc_html__('Sorry, you are not allowed to access this page.', 'ip2location-country-blocker'), 403);
 		}
 
 		check_admin_referer('export_ip_list');
@@ -184,12 +193,12 @@ class IP2LocationCountryBlocker
 			header('Content-Type: text/plain; charset=utf-8');
 			header('Content-Disposition: attachment; filename="' . $list_key . '.txt"');
 
-			echo str_replace(';', "\n", $list);
+			echo esc_html(str_replace(';', "\n", $list));
 
 			exit;
 		}
 
-		wp_die(__('Invalid export list.'), 403);
+		wp_die(esc_html__('Invalid export list.', 'ip2location-country-blocker'), 403);
 	}
 
 	public function frontend_page()
@@ -258,17 +267,17 @@ class IP2LocationCountryBlocker
 			if (!empty($frontend_auto_block_threshold) && !preg_match('/^[0-9]+$/', $frontend_auto_block_threshold)) {
 				$frontend_status = '
 				<div class="error">
-					<p>' . sprintf(__('%1$sERROR:%2$s Auto block threshold has to be a number.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
+					<p>' . sprintf(/* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __('%1$sERROR:%2$s Auto block threshold has to be a number.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
 				</div>';
 			} elseif ($frontend_option == 2 && !filter_var($frontend_error_page, \FILTER_VALIDATE_URL)) {
 				$frontend_status = '
 				<div class="error">
-					<p>' . sprintf(__('%1$sERROR:%2$s Please choose a custom error page.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
+					<p>' . sprintf(/* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __('%1$sERROR:%2$s Please choose a custom error page.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
 				</div>';
 			} elseif ($frontend_option == 3 && !filter_var($frontend_redirect_url, \FILTER_VALIDATE_URL)) {
 				$frontend_status = '
 				<div class="error">
-					<p>' . sprintf(__('%1$sERROR:%2$s Please provide a valid URL for redirection.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
+					<p>' . sprintf(/* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __('%1$sERROR:%2$s Please provide a valid URL for redirection.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
 				</div>';
 			} else {
 				// Remove country that existed in group to prevent duplicated lookup.
@@ -313,39 +322,43 @@ class IP2LocationCountryBlocker
 		if ($this->get_option('lookup_mode') == 'bin' && !is_file(IP2LOCATION_DIR . $this->get_option('database'))) {
 			$frontend_status .= '
 			<div class="error">
-				<p>' . sprintf(__('%1$sERROR:%2$s Unable to find the IP2Location BIN database! Please %3$sdownload the BIN database%4$s in Settings page.', 'ip2location-country-blocker'), '<strong>', '</strong>', '<a href="#bin_download">', '</a>') . '</p>
+				<p>' . sprintf(/* translators: %1$s: opening bold tag, %2$s: closing bold tag, %3$s: opening link tag, %4$s: closing link tag. */ __('%1$sERROR:%2$s Unable to find the IP2Location BIN database! Please %3$sdownload the BIN database%4$s in Settings page.', 'ip2location-country-blocker'), '<strong>', '</strong>', '<a href="#bin_download">', '</a>') . '</p>
 			</div>';
 		}
 
 		echo '
 		<div class="wrap">
-			<h1>' . __('Frontend Settings', 'ip2location-country-blocker') . '</h1>
-			' . $cache_warning . '
-			' . $frontend_status . '
+			<h1>' . esc_html__('Frontend Settings', 'ip2location-country-blocker') . '</h1>
+			' . wp_kses_post($cache_warning) . '
+			' . wp_kses_post($frontend_status) . '
 
 			<form method="post" novalidate="novalidate">
-				' . wp_nonce_field('save_frontend') . '
+				';
+
+				wp_nonce_field('save_frontend');
+
+				echo '
 				<div style="margin-top:20px">
 					<label for="enable_frontend">
 						<input type="checkbox" name="enable_frontend" id="enable_frontend"' . (($enable_frontend) ? ' checked' : '') . '>
-						' . __('Enable Frontend Blocking', 'ip2location-country-blocker') . '
+						' . esc_html__('Enable Frontend Blocking', 'ip2location-country-blocker') . '
 					</label>
 				</div>
 
 				<div class="postbox" style="margin-top:20px;padding-left:15px;padding-right:15px;padding-bottom:20px;">
 				<table class="form-table" style="margin-left:20px;">
-					<h2 class="title" style="padding-bottom:5px">' . __('Block By Country', 'ip2location-country-blocker') . '</h2>
+					<h2 class="title" style="padding-bottom:5px">' . esc_html__('Block By Country', 'ip2location-country-blocker') . '</h2>
 					<tr>
 						<th scope="row">
-							<label>' . __('Block by country', 'ip2location-country-blocker') . '</label>
+							<label>' . esc_html__('Block by country', 'ip2location-country-blocker') . '</label>
 						</th>
 						<td>
 							<fieldset>
-								<legend class="screen-reader-text"><span>' . __('Blocking Mode', 'ip2location-country-blocker') . '</span></legend>
-								<label><input type="radio" name="frontend_block_mode" value="1"' . (($frontend_block_mode == 1) ? ' checked' : '') . ' class="input-field" /> ' . __('Block countries listed below.', 'ip2location-country-blocker') . '</label><br />
-								<label><input type="radio" name="frontend_block_mode" value="2"' . (($frontend_block_mode == 2) ? ' checked' : '') . ' class="input-field" /> ' . sprintf(__('Block all countries %1$sexcept%2$s countries listed below.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</label>
+								<legend class="screen-reader-text"><span>' . esc_html__('Blocking Mode', 'ip2location-country-blocker') . '</span></legend>
+								<label><input type="radio" name="frontend_block_mode" value="1"' . (($frontend_block_mode == 1) ? ' checked' : '') . ' class="input-field" /> ' . esc_html__('Block countries listed below.', 'ip2location-country-blocker') . '</label><br />
+								<label><input type="radio" name="frontend_block_mode" value="2"' . (($frontend_block_mode == 2) ? ' checked' : '') . ' class="input-field" /> ' . sprintf(/* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ esc_html__('Block all countries %1$sexcept%2$s countries listed below.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</label>
 							</fieldset>
-							<select name="frontend_ban_list[]" id="frontend_ban_list" data-placeholder="' . __('Choose Country...', 'ip2location-country-blocker') . '" multiple="true" class="chosen input-field">';
+							<select name="frontend_ban_list[]" id="frontend_ban_list" data-placeholder="' . esc_html__('Choose Country...', 'ip2location-country-blocker') . '" multiple="true" class="chosen input-field">';
 		foreach ($this->country_groups as $group_name => $countries) {
 			echo '
 									<option value="' . esc_attr($group_name) . '"' . (($this->is_in_array($group_name, $frontend_ban_list)) ? ' selected' : '') . '> ' . esc_html($group_name) . ' Countries</option>';
@@ -357,40 +370,38 @@ class IP2LocationCountryBlocker
 		}
 		echo '
 								</select>
-							<p>' . sprintf(__('%1$sNote:%2$s For EU, APAC and other country groupings, please visit %3$sGeoDataSource Country Grouping Terminology%4$s for details.', 'ip2location-country-blocker'), '<strong>', '</strong>', '<a href="https://github.com/geodatasource/country-grouping-terminology" target="_blank">', '</a>') . '</p>
+							<p>' . sprintf(/* translators: %1$s: opening bold tag, %2$s: closing bold tag, %3$s: opening link tag, %4$s: closing link tag. */ esc_html__('%1$sNote:%2$s For EU, APAC and other country groupings, please visit %3$sGeoDataSource Country Grouping Terminology%4$s for details.', 'ip2location-country-blocker'), '<strong>', '</strong>', '<a href="https://github.com/geodatasource/country-grouping-terminology" target="_blank">', '</a>') . '</p>
 						</td>
 					</tr>
 					</table>
-				</div>
 
-				<div class="postbox" style="margin-top:20px;padding-left:15px;padding-right:15px;padding-bottom:20px;">
-					<h2 class="title" style="padding-bottom:5px">' . __('Block By Proxy', 'ip2location-country-blocker') . '</h2>
+					<h2 class="title" style="padding-bottom:5px">' . esc_html__('Block By Proxy', 'ip2location-country-blocker') . '</h2>
 
 					<table class="form-table" style="margin-left:20px;">
 						<tr>
 							<th scope="row">
-								<label>' . __('Block by proxy IP', 'ip2location-country-blocker') . '</label>
+								<label>' . esc_html__('Block by proxy IP', 'ip2location-country-blocker') . '</label>
 							</th>
 							<td>
 								<label for="frontend_block_proxy">
 									<input type="checkbox" name="frontend_block_proxy" id="frontend_block_proxy"' . (($frontend_block_proxy) ? ' checked' : '') . ' class="input-field">
-									' . __('Block proxy IP.', 'ip2location-country-blocker') . '
+									' . esc_html__('Block proxy IP.', 'ip2location-country-blocker') . '
 									<p class="description">
-										' . __('IP2Proxy Lookup Mode is required for this option. You can enable/disable the IP2Proxy Lookup Mode at the Settings tab.', 'ip2location-country-blocker') . '
+										' . esc_html__('IP2Proxy Lookup Mode is required for this option. You can enable/disable the IP2Proxy Lookup Mode at the Settings tab.', 'ip2location-country-blocker') . '
 									</p>
 								</label>
 							</td>
 						</tr>
 						<tr>
 							<th scope="row">
-								<label>' . __('Block by proxy type', 'ip2location-country-blocker') . '</label>
+								<label>' . esc_html__('Block by proxy type', 'ip2location-country-blocker') . '</label>
 							</th>
 							<td>
 								<label for="frontend_block_proxy_type">
-									' . __('Block following proxy type.', 'ip2location-country-blocker') . '
+									' . esc_html__('Block following proxy type.', 'ip2location-country-blocker') . '
 								</label>
 								<div style="margin-top:10px">
-									<select name="frontend_block_proxy_type[]" id="frontend_block_proxy_type" data-placeholder="' . __('Choose Proxy Type...', 'ip2location-country-blocker') . '" multiple="true" class="chosen input-field">';
+									<select name="frontend_block_proxy_type[]" id="frontend_block_proxy_type" data-placeholder="' . esc_html__('Choose Proxy Type...', 'ip2location-country-blocker') . '" multiple="true" class="chosen input-field">';
 		foreach ($this->proxy_types as $proxy_type) {
 			echo '
 											<option value="' . esc_attr($proxy_type) . '"' . (($this->is_in_array($proxy_type, $frontend_block_proxy_type)) ? ' selected' : '') . '> ' . esc_html($proxy_type) . '</option>';
@@ -399,7 +410,7 @@ class IP2LocationCountryBlocker
 		echo '
 									</select>
 									<p class="description">
-										' . sprintf(__('This feature only works with %1$sIP2Proxy Commercial%2$s database.', 'ip2location-country-blocker'), '<a href="https://www.ip2location.com/database/ip2proxy#wordpress-wzdicb" target="_blank">', '</a>') . '
+										' . sprintf(/* translators: %1$s: opening link tag, %2$s: closing link tag. */ esc_html__('This feature only works with %1$sIP2Proxy Commercial%2$s database.', 'ip2location-country-blocker'), '<a href="https://www.ip2location.com/database/ip2proxy#wordpress-wzdicb" target="_blank">', '</a>') . '
 									</p>
 								</div>
 							</td>
@@ -408,21 +419,21 @@ class IP2LocationCountryBlocker
 				</div>
 
 				<div class="postbox" style="margin-top:20px;padding-left:15px;padding-right:15px;padding-bottom:20px;">
-					<h2 class="title" style="padding-bottom:5px">' . __('Other Settings', 'ip2location-country-blocker') . '</h2>
+					<h2 class="title" style="padding-bottom:5px">' . esc_html__('Other Settings', 'ip2location-country-blocker') . '</h2>
 
 					<table class="form-table" style="margin-left:20px;">
 					<tr>
 						<th scope="row">
-							<label>' . __('Block by bot', 'ip2location-country-blocker') . '</label>
+							<label>' . esc_html__('Block by bot', 'ip2location-country-blocker') . '</label>
 						</th>
 						<td>
 							<label for="frontend_skip_bots">
 								<input type="checkbox" name="frontend_skip_bots" id="frontend_skip_bots"' . (($frontend_skip_bots) ? ' checked' : '') . ' class="input-field">
-								' . __('Do not block the below bots and crawlers.', 'ip2location-country-blocker') . '
+								' . esc_html__('Do not block the below bots and crawlers.', 'ip2location-country-blocker') . '
 							</label>
 
 							<div style="margin-top:10px;">
-								<select name="frontend_bots_list[]" id="frontend_bots_list" data-placeholder="' . __('Choose Robot...', 'ip2location-country-blocker') . '" multiple="true" class="chosen input-field">';
+								<select name="frontend_bots_list[]" id="frontend_bots_list" data-placeholder="' . esc_html__('Choose Robot...', 'ip2location-country-blocker') . '" multiple="true" class="chosen input-field">';
 		foreach ($this->robots as $robot_code => $robot_name) {
 			echo '
 										<option value="' . esc_attr($robot_code) . '"' . (($this->is_in_array($robot_code, $frontend_bots_list)) ? ' selected' : '') . '> ' . esc_html($robot_name) . '</option>';
@@ -436,24 +447,24 @@ class IP2LocationCountryBlocker
 
 					<tr>
 						<th scope="row">
-							<label>' . __('Display page when visitor is blocked', 'ip2location-country-blocker') . '</label>
+							<label>' . esc_html__('Display page when visitor is blocked', 'ip2location-country-blocker') . '</label>
 						</th>
 						<td>
 							<div style="margin-bottom:10px;">
-								<strong>' . __('Show the following page when visitor is blocked.', 'ip2location-country-blocker') . '</strong>
+								<strong>' . esc_html__('Show the following page when visitor is blocked.', 'ip2location-country-blocker') . '</strong>
 							</div>
 
 							<fieldset>
-								<legend class="screen-reader-text"><span>' . __('Error Option', 'ip2location-country-blocker') . '</span></legend>
+								<legend class="screen-reader-text"><span>' . esc_html__('Error Option', 'ip2location-country-blocker') . '</span></legend>
 
 								<label>
 									<input type="radio" name="frontend_option" id="frontend_option_1" value="1"' . (($frontend_option == 1) ? ' checked' : '') . ' class="input-field">
-									' . __('Default Error 403 Page', 'ip2location-country-blocker') . '
+									' . esc_html__('Default Error 403 Page', 'ip2location-country-blocker') . '
 								</label>
 								<br />
 								<label>
 									<input type="radio" name="frontend_option" id="frontend_option_2" value="2"' . (($frontend_option == 2) ? ' checked' : '') . ' class="input-field">
-									' . __('Custom Error Page: ', 'ip2location-country-blocker') . '
+									' . esc_html__('Custom Error Page: ', 'ip2location-country-blocker') . '
 									<select name="frontend_error_page" id="frontend_error_page" class="input-field">';
 		$pages = get_pages(['post_status' => 'publish,private']);
 
@@ -467,7 +478,7 @@ class IP2LocationCountryBlocker
 								<br />
 								<label>
 									<input type="radio" name="frontend_option" id="frontend_option_3" value="3"' . (($frontend_option == 3) ? ' checked' : '') . ' class="input-field" />
-									' . __('URL: ', 'ip2location-country-blocker') . '
+									' . esc_html__('URL: ', 'ip2location-country-blocker') . '
 									<input type="text" name="frontend_redirect_url" id="frontend_redirect_url" value="' . esc_attr($frontend_redirect_url) . '" class="regular-text code input-field" />
 								</label>
 							</fieldset>
@@ -475,49 +486,49 @@ class IP2LocationCountryBlocker
 					</tr>
 					<tr>
 						<th scope="row">
-							<label>' . __('Blacklist IP addresses', 'ip2location-country-blocker') . '</label>
+							<label>' . esc_html__('Blacklist IP addresses', 'ip2location-country-blocker') . '</label>
 						</th>
 						<td>
 							<fieldset>
-								<legend class="screen-reader-text"><span>' . __('Blacklist', 'ip2location-country-blocker') . '</span></legend>
+								<legend class="screen-reader-text"><span>' . esc_html__('Blacklist', 'ip2location-country-blocker') . '</span></legend>
 								<input type="text" name="frontend_ip_blacklist" id="frontend_ip_blacklist" value="' . esc_attr($frontend_ip_blacklist) . '" class="regular-text ip-address-list" />
-								<p class="description">' . __('Use asterisk (*) for wildcard matching. E.g.: 8.8.8.* will match IP from 8.8.8.0 to 8.8.8.255. CIDR format also supported.', 'ip2location-country-blocker') . '</p>
-								<a href="' . wp_nonce_url(admin_url('admin-post.php?action=ip2location_country_blocker_export_ip_list&list=frontend_ip_blacklist'), 'export_ip_list') . '" class="button button-small">' . __('Export', 'ip2location-country-blocker') . '</a> <span class="description">' . __('Download the list as a text file.', 'ip2location-country-blocker') . '</span>
+								<p class="description">' . esc_html__('Use asterisk (*) for wildcard matching. E.g.: 8.8.8.* will match IP from 8.8.8.0 to 8.8.8.255. CIDR format also supported.', 'ip2location-country-blocker') . '</p>
+								<a href="' . esc_url(wp_nonce_url(admin_url('admin-post.php?action=ip2location_country_blocker_export_ip_list&list=frontend_ip_blacklist'), 'export_ip_list')) . '" class="button button-small">' . esc_html__('Export', 'ip2location-country-blocker') . '</a> <span class="description">' . esc_html__('Download the list as a text file.', 'ip2location-country-blocker') . '</span>
 							</fieldset>
 						</td>
 					</tr>
 					<tr>
 						<th scope="row">
-							<label>' . __('Blacklist Threshold', 'ip2location-country-blocker') . '</label>
+							<label>' . esc_html__('Blacklist Threshold', 'ip2location-country-blocker') . '</label>
 						</th>
 						<td>
 							<input type="text" name="frontend_auto_block_threshold" id="frontend_auto_block_threshold" maxlength="20" placeholder="100" value="' . esc_attr($frontend_auto_block_threshold) . '" class="regular-text code input-field" />
 							<a href="javascript:;" id="link-reset">Reset</a>
-							<p class="description">' . __('Automatically add client IP into blacklist if client keep hitting front pages more than this threshold within 24 hours.', 'ip2location-country-blocker') . '</p>
+							<p class="description">' . esc_html__('Automatically add client IP into blacklist if client keep hitting front pages more than this threshold within 24 hours.', 'ip2location-country-blocker') . '</p>
 						</td>
 					</tr>
 					<tr>
 						<th scope="row">
-							<label>' . __('Whitelist IP addresses', 'ip2location-country-blocker') . '</label>
+							<label>' . esc_html__('Whitelist IP addresses', 'ip2location-country-blocker') . '</label>
 						</th>
 						<td>
 							<fieldset>
-								<legend class="screen-reader-text"><span>Blacklist</span></legend>
+								<legend class="screen-reader-text"><span>' . esc_html__('Whitelist', 'ip2location-country-blocker') . '</span></legend>
 								<input type="text" name="frontend_ip_whitelist" id="frontend_ip_whitelist" value="' . esc_attr($frontend_ip_whitelist) . '" class="regular-text ip-address-list" />
-								<p class="description">' . __('Use asterisk (*) for wildcard matching. E.g.: 8.8.8.* will match IP from 8.8.8.0 to 8.8.8.255. CIDR format also supported.', 'ip2location-country-blocker') . '</p>
-								<a href="' . wp_nonce_url(admin_url('admin-post.php?action=ip2location_country_blocker_export_ip_list&list=frontend_ip_whitelist'), 'export_ip_list') . '" class="button button-small">' . __('Export', 'ip2location-country-blocker') . '</a> <span class="description">' . __('Download the list as a text file.', 'ip2location-country-blocker') . '</span>
+								<p class="description">' . esc_html__('Use asterisk (*) for wildcard matching. E.g.: 8.8.8.* will match IP from 8.8.8.0 to 8.8.8.255. CIDR format also supported.', 'ip2location-country-blocker') . '</p>
+								<a href="' . esc_url(wp_nonce_url(admin_url('admin-post.php?action=ip2location_country_blocker_export_ip_list&list=frontend_ip_whitelist'), 'export_ip_list')) . '" class="button button-small">' . esc_html__('Export', 'ip2location-country-blocker') . '</a> <span class="description">' . esc_html__('Download the list as a text file.', 'ip2location-country-blocker') . '</span>
 							</fieldset>
 						</td>
 					</tr>
 				</table>
 				<label for="enable_frontend_logged_user_whitelist">
 					<input type="checkbox" name="enable_frontend_logged_user_whitelist" id="enable_frontend_logged_user_whitelist"' . (($enable_frontend_logged_user_whitelist) ? ' checked' : '') . ' class="input-field">
-						' . __('Bypass blocking for logged in user.', 'ip2location-country-blocker') . '
+						' . esc_html__('Bypass blocking for logged in user.', 'ip2location-country-blocker') . '
 				</label>
 				</div>
 
 				<p class="submit">
-					<input type="submit" name="submit" id="submit" class="button button-primary" value="' . __('Save Changes', 'ip2location-country-blocker') . '" />
+					<input type="submit" name="submit" id="submit" class="button button-primary" value="' . esc_html__('Save Changes', 'ip2location-country-blocker') . '" />
 				</p>
 			</form>
 
@@ -533,7 +544,7 @@ class IP2LocationCountryBlocker
 			$cache_warning = '
 			<div class="error">
 				<p>
-					' . sprintf(__('This IP2Location Country Blocker plugin does not work well with the %1$s%2$s%3$s cache plugin. To avoid unexpected results, we will strongly recommend you to deactivate the cache plugin.', 'ip2location-country-blocker'), '<strong>', $name, '</strong>') . '
+					' . sprintf(/* translators: %1$s: opening bold tag, %2$s: a value, %3$s: closing bold tag. */ __('This IP2Location Country Blocker plugin does not work well with the %1$s%2$s%3$s cache plugin. To avoid unexpected results, we will strongly recommend you to deactivate the cache plugin.', 'ip2location-country-blocker'), '<strong>', $name, '</strong>') . '
 				</p>
 			</div>';
 		}
@@ -597,17 +608,17 @@ class IP2LocationCountryBlocker
 			if (!empty($backend_auto_block_threshold) && !preg_match('/^[0-9]+$/', $backend_auto_block_threshold)) {
 				$backend_status = '
 				<div class="error">
-					<p>' . sprintf(__('%1$sERROR:%2$s Auto block threshold has to be a number.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
+					<p>' . sprintf(/* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __('%1$sERROR:%2$s Auto block threshold has to be a number.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
 				</div>';
 			} elseif ($backend_option == 2 && !filter_var($backend_error_page, \FILTER_VALIDATE_URL)) {
 				$backend_status = '
 				<div class="error">
-					<p>' . sprintf(__('%1$sERROR:%2$s Please choose a custom error page.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
+					<p>' . sprintf(/* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __('%1$sERROR:%2$s Please choose a custom error page.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
 				</div>';
 			} elseif ($backend_option == 3 && !filter_var($backend_redirect_url, \FILTER_VALIDATE_URL)) {
 				$backend_status = '
 				<div class="error">
-					<p>' . sprintf(__('%1$sERROR:%2$s Please provide a valid URL for redirection.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
+					<p>' . sprintf(/* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __('%1$sERROR:%2$s Please provide a valid URL for redirection.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
 				</div>';
 			} else {
 				// Remove country that existed in group to prevent duplicated lookup.
@@ -658,40 +669,44 @@ class IP2LocationCountryBlocker
 		if ($this->get_option('lookup_mode') == 'bin' && !is_file(IP2LOCATION_DIR . $this->get_option('database'))) {
 			$backend_status .= '
 			<div class="error">
-				<p>' . sprintf(__('%1$sERROR:%2$s Unable to find the IP2Location BIN database! Please download the database at at %3$sIP2Location commercial database%4$s | %5$sIP2Location LITE database (free edition)%6$s.', 'ip2location-country-blocker'), '<strong>', '</strong>', '<a href="https://www.ip2location.com/?r=wordpress" target="_blank">', '</a>', '<a href="https://lite.ip2location.com/?r=wordpress" target="_blank">', '</a>') . '</p>
+				<p>' . sprintf(/* translators: %1$s: opening bold tag, %2$s: closing bold tag, %3$s: opening link tag, %4$s: closing link tag, %5$s: opening link tag, %6$s: closing link tag. */ __('%1$sERROR:%2$s Unable to find the IP2Location BIN database! Please download the database at at %3$sIP2Location commercial database%4$s | %5$sIP2Location LITE database (free edition)%6$s.', 'ip2location-country-blocker'), '<strong>', '</strong>', '<a href="https://www.ip2location.com/?r=wordpress" target="_blank">', '</a>', '<a href="https://lite.ip2location.com/?r=wordpress" target="_blank">', '</a>') . '</p>
 			</div>';
 		}
 
 		echo '
 		<div class="wrap">
-			<h1>' . __('Backend Settings', 'ip2location-country-blocker') . '</h1>
-			' . $cache_warning . '
-			' . $backend_status . '
+			<h1>' . esc_html__('Backend Settings', 'ip2location-country-blocker') . '</h1>
+			' . wp_kses_post($cache_warning) . '
+			' . wp_kses_post($backend_status) . '
 
 			<form id="form_backend_settings" method="post" novalidate="novalidate">
-				' . wp_nonce_field('save_backend') . '
+				';
+
+				wp_nonce_field('save_backend');
+
+				echo '
 				<input type="hidden" name="my_country_code" id="my_country_code" value="' . esc_attr($my_country_code) . '" />
 				<input type="hidden" name="my_country_name" id="my_country_name" value="' . esc_attr($my_country_name) . '" />
 				<div style="margin-top:20px;">
 					<label for="enable_backend">
 						<input type="checkbox" name="enable_backend" id="enable_backend"' . (($enable_backend) ? ' checked' : '') . '>
-						' . __('Enable Backend Blocking', 'ip2location-country-blocker') . '
+						' . esc_html__('Enable Backend Blocking', 'ip2location-country-blocker') . '
 					</label>
 				</div>
 
 				<div class="postbox" style="margin-top:20px;padding-left:15px;padding-right:15px;padding-bottom:20px;">
-					<h2 class="title" style="padding-bottom:5px">' . __('Block By Country', 'ip2location-country-blocker') . '</h2>
+					<h2 class="title" style="padding-bottom:5px">' . esc_html__('Block By Country', 'ip2location-country-blocker') . '</h2>
 
 					<table class="form-table" style="margin-left:20px;">
 						<tr>
 							<th scope="row">
-								<label>' . __('Block by country', 'ip2location-country-blocker') . '</label>
+								<label>' . esc_html__('Block by country', 'ip2location-country-blocker') . '</label>
 							</th>
 							<td>
 								<fieldset>
 									<legend class="screen-reader-text"><span>Blocking Mode</span></legend>
-									<label><input type="radio" name="backend_block_mode" value="1"' . (($backend_block_mode == 1) ? ' checked' : '') . ' class="input-field" /> ' . __('Block countries listed below.', 'ip2location-country-blocker') . '</label><br />
-									<label><input type="radio" name="backend_block_mode" value="2"' . (($backend_block_mode == 2) ? ' checked' : '') . ' class="input-field" /> ' . sprintf(__('Block all countries %1$sexcept%2$s countries listed below.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</label>
+									<label><input type="radio" name="backend_block_mode" value="1"' . (($backend_block_mode == 1) ? ' checked' : '') . ' class="input-field" /> ' . esc_html__('Block countries listed below.', 'ip2location-country-blocker') . '</label><br />
+									<label><input type="radio" name="backend_block_mode" value="2"' . (($backend_block_mode == 2) ? ' checked' : '') . ' class="input-field" /> ' . sprintf(/* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ esc_html__('Block all countries %1$sexcept%2$s countries listed below.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</label>
 								</fieldset>
 
 								<select name="backend_ban_list[]" id="backend_ban_list" data-placeholder="Choose Country..." multiple="true" class="chosen input-field">';
@@ -708,37 +723,35 @@ class IP2LocationCountryBlocker
 		echo '
 								</select>
 
-								<p>' . sprintf(__('%1$sNote:%2$s For EU, APAC and other country groupings, please visit %3$sGeoDataSource Country Grouping Terminology%4$s for details.', 'ip2location-country-blocker'), '<strong>', '</strong>', '<a href="https://github.com/geodatasource/country-grouping-terminology" target="_blank">', '</a>') . '</p>
+								<p>' . sprintf(/* translators: %1$s: opening bold tag, %2$s: closing bold tag, %3$s: opening link tag, %4$s: closing link tag. */ esc_html__('%1$sNote:%2$s For EU, APAC and other country groupings, please visit %3$sGeoDataSource Country Grouping Terminology%4$s for details.', 'ip2location-country-blocker'), '<strong>', '</strong>', '<a href="https://github.com/geodatasource/country-grouping-terminology" target="_blank">', '</a>') . '</p>
 							</td>
 						</tr>
 					</table>
-				</div>
 
-				<div class="postbox" style="margin-top:20px;padding-left:15px;padding-right:15px;padding-bottom:20px;">
-					<h2 class="title" style="padding-bottom:5px">' . __('Block By Proxy', 'ip2location-country-blocker') . '</h2>
+					<h2 class="title" style="padding-bottom:5px">' . esc_html__('Block By Proxy', 'ip2location-country-blocker') . '</h2>
 
 					<table class="form-table" style="margin-left:20px;">
 						<tr>
 							<th scope="row">
-								<label>' . __('Block by proxy IP', 'ip2location-country-blocker') . '</label>
+								<label>' . esc_html__('Block by proxy IP', 'ip2location-country-blocker') . '</label>
 							</th>
 							<td>
 								<label for="backend_block_proxy">
 									<input type="checkbox" name="backend_block_proxy" id="backend_block_proxy"' . (($backend_block_proxy) ? ' checked' : '') . ' class="input-field">
-									' . __('Block proxy IP.', 'ip2location-country-blocker') . '
+									' . esc_html__('Block proxy IP.', 'ip2location-country-blocker') . '
 								</label>
 								<p class="description">
-									' . __('IP2Proxy Lookup Mode is required for this option. You can enable/disable the IP2Proxy Lookup Mode at the Settings tab.', 'ip2location-country-blocker') . '
+									' . esc_html__('IP2Proxy Lookup Mode is required for this option. You can enable/disable the IP2Proxy Lookup Mode at the Settings tab.', 'ip2location-country-blocker') . '
 								</p>
 							</td>
 						</tr>
 						<tr>
 							<th scope="row">
-								<label>' . __('Block by proxy type', 'ip2location-country-blocker') . '</label>
+								<label>' . esc_html__('Block by proxy type', 'ip2location-country-blocker') . '</label>
 							</th>
 							<td>
 								<label for="backend_block_proxy_type">
-									' . __('Block following proxy type.', 'ip2location-country-blocker') . '
+									' . esc_html__('Block following proxy type.', 'ip2location-country-blocker') . '
 								</label>
 								<div style="margin-top:10px">
 									<select name="backend_block_proxy_type[]" id="backend_block_proxy_type" data-placeholder="Choose Proxy Type..." multiple="true" class="chosen input-field">';
@@ -751,7 +764,7 @@ class IP2LocationCountryBlocker
 									</select>
 
 									<p class="description">
-										' . sprintf(__('This feature only works with %1$sIP2Proxy Commercial%2$s database.', 'ip2location-country-blocker'), '<a href="https://www.ip2location.com/database/ip2proxy#wordpress-wzdicb" target="_blank">', '</a>') . '
+										' . sprintf(/* translators: %1$s: opening link tag, %2$s: closing link tag. */ esc_html__('This feature only works with %1$sIP2Proxy Commercial%2$s database.', 'ip2location-country-blocker'), '<a href="https://www.ip2location.com/database/ip2proxy#wordpress-wzdicb" target="_blank">', '</a>') . '
 									</p>
 								</div>
 							</td>
@@ -760,17 +773,17 @@ class IP2LocationCountryBlocker
 				</div>
 
 				<div class="postbox" style="margin-top:20px;padding-left:15px;padding-right:15px;padding-bottom:20px;">
-					<h2 class="title" style="padding-bottom:5px">' . __('Other Settings', 'ip2location-country-blocker') . '</h2>
+					<h2 class="title" style="padding-bottom:5px">' . esc_html__('Other Settings', 'ip2location-country-blocker') . '</h2>
 
 					<table class="form-table" style="margin-left:20px;">
 						<tr>
 							<th scope="row">
-								<label>' . __('Block by bot', 'ip2location-country-blocker') . '</label>
+								<label>' . esc_html__('Block by bot', 'ip2location-country-blocker') . '</label>
 							</th>
 							<td>
 								<label for="backend_skip_bots">
 									<input type="checkbox" name="backend_skip_bots" id="backend_skip_bots"' . (($backend_skip_bots) ? ' checked' : '') . ' class="input-field">
-									' . __('Do not block the below bots and crawlers.', 'ip2location-country-blocker') . '
+									' . esc_html__('Do not block the below bots and crawlers.', 'ip2location-country-blocker') . '
 								</label>
 								<div style="margin-top:10px">
 									<select name="backend_bots_list[]" id="backend_bots_list" data-placeholder="Choose Robot..." multiple="true" class="chosen input-field">';
@@ -787,24 +800,24 @@ class IP2LocationCountryBlocker
 
 						<tr>
 							<th scope="row">
-								<label>' . __('Display page when visitor is blocked', 'ip2location-country-blocker') . '</label>
+								<label>' . esc_html__('Display page when visitor is blocked', 'ip2location-country-blocker') . '</label>
 							</th>
 							<td>
 								<p>
-									<strong>' . __('Show the following page when a visitor is blocked.', 'ip2location-country-blocker') . '</strong>
+									<strong>' . esc_html__('Show the following page when a visitor is blocked.', 'ip2location-country-blocker') . '</strong>
 								</p>
 
 								<fieldset>
-									<legend class="screen-reader-text"><span>' . __('Error Option', 'ip2location-country-blocker') . '</span></legend>
+									<legend class="screen-reader-text"><span>' . esc_html__('Error Option', 'ip2location-country-blocker') . '</span></legend>
 
 									<label>
 										<input type="radio" name="backend_option" id="backend_option_1" value="1"' . (($backend_option == 1) ? ' checked' : '') . ' class="input-field">
-										' . __('Default Error 403 Page', 'ip2location-country-blocker') . '
+										' . esc_html__('Default Error 403 Page', 'ip2location-country-blocker') . '
 									</label>
 									<br />
 									<label>
 										<input type="radio" name="backend_option" id="backend_option_2" value="2"' . (($backend_option == 2) ? ' checked' : '') . ' class="input-field">
-										' . __('Custom Error Page: ', 'ip2location-country-blocker') . '
+										' . esc_html__('Custom Error Page: ', 'ip2location-country-blocker') . '
 										<select name="backend_error_page" id="backend_error_page" class="input-field">';
 		$pages = get_pages(['post_status' => 'publish,private']);
 
@@ -819,7 +832,7 @@ class IP2LocationCountryBlocker
 									<br />
 									<label>
 										<input type="radio" name="backend_option" id="backend_option_3" value="3"' . (($backend_option == 3) ? ' checked' : '') . ' class="input-field">
-										' . __('URL: ', 'ip2location-country-blocker') . '
+										' . esc_html__('URL: ', 'ip2location-country-blocker') . '
 										<input type="text" name="backend_redirect_url" id="backend_redirect_url" value="' . esc_attr($backend_redirect_url) . '" class="regular-text code input-field" />
 									</label>
 								</fieldset>
@@ -827,58 +840,58 @@ class IP2LocationCountryBlocker
 						</tr>
 						<tr>
 							<th scope="row">
-								<label>' . __('Secret code to bypass blocking (Max 20 characters)', 'ip2location-country-blocker') . '</label>
+								<label>' . esc_html__('Secret code to bypass blocking (Max 20 characters)', 'ip2location-country-blocker') . '</label>
 							</th>
 							<td>
 								<input type="text" name="bypass_code" id="bypass_code" maxlength="20" value="' . esc_attr($bypass_code) . '" class="regular-text code input-field" />
 								<p class="description">
-									' . sprintf(__('This is the secret code used to bypass all blockings to backend pages. It take precedence over all block settings configured. To bypass, you just need to append the %1$ssecret_code%2$s parameter with above value to the wp-login.php page. For example, https://www.example.com/wp-login.php%3$s?secret_code=1234567%4$s. If you add in %5s&action=emergency_stop%6s, both frontend and backend blocking will be disabled immediately.', 'ip2location-country-blocker'), '<strong>', '</strong>', '<code>', '</code>', '<code>', '</code>') . '
+									' . sprintf(/* translators: %1$s: opening bold tag, %2$s: closing bold tag, %3$s: opening code tag, %4$s: closing code tag, %5$s: opening code tag, %6$s: closing code tag. */ esc_html__('This is the secret code used to bypass all blockings to backend pages. It take precedence over all block settings configured. To bypass, you just need to append the %1$ssecret_code%2$s parameter with above value to the wp-login.php page. For example, https://www.example.com/wp-login.php%3$s?secret_code=1234567%4$s. If you add in %5$s&action=emergency_stop%6$s, both frontend and backend blocking will be disabled immediately.', 'ip2location-country-blocker'), '<strong>', '</strong>', '<code>', '</code>', '<code>', '</code>') . '
 								</p>
 							</td>
 						</tr>
 						<tr>
 							<th scope="row">
-								<label>' . __('Blacklist IP addresses', 'ip2location-country-blocker') . '</label>
+								<label>' . esc_html__('Blacklist IP addresses', 'ip2location-country-blocker') . '</label>
 							</th>
 							<td>
 								<fieldset>
-									<legend class="screen-reader-text"><span>' . __('Blacklist', 'ip2location-country-blocker') . '</span></legend>
+									<legend class="screen-reader-text"><span>' . esc_html__('Blacklist', 'ip2location-country-blocker') . '</span></legend>
 									<input type="text" name="backend_ip_blacklist" id="backend_ip_blacklist" value="' . esc_attr($backend_ip_blacklist) . '" class="regular-text ip-address-list" />
-									<p class="description">' . __('Use asterisk (*) for wildcard matching. E.g.: 8.8.8.* will match IP from 8.8.8.0 to 8.8.8.255. CIDR format also supported.', 'ip2location-country-blocker') . '</p>
-									<a href="' . wp_nonce_url(admin_url('admin-post.php?action=ip2location_country_blocker_export_ip_list&list=backend_ip_blacklist'), 'export_ip_list') . '" class="button button-small">' . __('Export', 'ip2location-country-blocker') . '</a> <span class="description">' . __('Download the list as a text file.', 'ip2location-country-blocker') . '</span>
+									<p class="description">' . esc_html__('Use asterisk (*) for wildcard matching. E.g.: 8.8.8.* will match IP from 8.8.8.0 to 8.8.8.255. CIDR format also supported.', 'ip2location-country-blocker') . '</p>
+									<a href="' . esc_url(wp_nonce_url(admin_url('admin-post.php?action=ip2location_country_blocker_export_ip_list&list=backend_ip_blacklist'), 'export_ip_list')) . '" class="button button-small">' . esc_html__('Export', 'ip2location-country-blocker') . '</a> <span class="description">' . esc_html__('Download the list as a text file.', 'ip2location-country-blocker') . '</span>
 								</fieldset>
 							</td>
 						</tr>
 						<tr>
 							<th scope="row">
-								<label>' . __('Automatic Blacklist', 'ip2location-country-blocker') . '</label>
+								<label>' . esc_html__('Automatic Blacklist', 'ip2location-country-blocker') . '</label>
 							</th>
 							<td>
 								<input type="text" name="backend_auto_block_threshold" id="backend_auto_block_threshold" maxlength="20" placeholder="100" value="' . esc_attr($backend_auto_block_threshold) . '" class="regular-text code input-field" />
 								<a href="javascript:;" id="link-reset">Reset</a>
-								<p class="description">' . __('Automatically add client IP into blacklist if client keep hitting admin area more than this threshold within 24 hours.', 'ip2location-country-blocker') . '</p>
+								<p class="description">' . esc_html__('Automatically add client IP into blacklist if client keep hitting admin area more than this threshold within 24 hours.', 'ip2location-country-blocker') . '</p>
 							</td>
 						</tr>
 						<tr>
 							<th scope="row">
-								<label>' . __('Whitelist IP addresses', 'ip2location-country-blocker') . '</label>
+								<label>' . esc_html__('Whitelist IP addresses', 'ip2location-country-blocker') . '</label>
 							</th>
 							<td>
 								<fieldset>
-									<legend class="screen-reader-text"><span>' . __('Blacklist', 'ip2location-country-blocker') . '</span></legend>
+									<legend class="screen-reader-text"><span>' . esc_html__('Whitelist', 'ip2location-country-blocker') . '</span></legend>
 									<input type="text" name="backend_ip_whitelist" id="backend_ip_whitelist" value="' . esc_attr($backend_ip_whitelist) . '" class="regular-text ip-address-list" />
-									<p class="description">' . __('Use asterisk (*) for wildcard matching. E.g.: 8.8.8.* will match IP from 8.8.8.0 to 8.8.8.255. CIDR format also supported.', 'ip2location-country-blocker') . '</p>
-									<a href="' . wp_nonce_url(admin_url('admin-post.php?action=ip2location_country_blocker_export_ip_list&list=backend_ip_whitelist'), 'export_ip_list') . '" class="button button-small">' . __('Export', 'ip2location-country-blocker') . '</a> <span class="description">' . __('Download the list as a text file.', 'ip2location-country-blocker') . '</span>
+									<p class="description">' . esc_html__('Use asterisk (*) for wildcard matching. E.g.: 8.8.8.* will match IP from 8.8.8.0 to 8.8.8.255. CIDR format also supported.', 'ip2location-country-blocker') . '</p>
+									<a href="' . esc_url(wp_nonce_url(admin_url('admin-post.php?action=ip2location_country_blocker_export_ip_list&list=backend_ip_whitelist'), 'export_ip_list')) . '" class="button button-small">' . esc_html__('Export', 'ip2location-country-blocker') . '</a> <span class="description">' . esc_html__('Download the list as a text file.', 'ip2location-country-blocker') . '</span>
 								</fieldset>
 							</td>
 						</tr>
 						<tr>
 							<th scope="row">
-								<label for="email_notification">' . __('Email Notification', 'ip2location-country-blocker') . '</label>
+								<label for="email_notification">' . esc_html__('Email Notification', 'ip2location-country-blocker') . '</label>
 							</th>
 							<td>
 								<select name="email_notification">
-									<option value="none"> ' . __('None', 'ip2location-country-blocker') . '</option>';
+									<option value="none"> ' . esc_html__('None', 'ip2location-country-blocker') . '</option>';
 		$users = get_users(['role' => 'administrator']);
 
 		foreach ($users as $user) {
@@ -890,7 +903,7 @@ class IP2LocationCountryBlocker
 								</select>
 
 								<p class="description">
-									' . __('Send email notification to selected recipient when a visitor is blocked.', 'ip2location-country-blocker') . '
+									' . esc_html__('Send email notification to selected recipient when a visitor is blocked.', 'ip2location-country-blocker') . '
 								</p>
 							</td>
 						</tr>
@@ -898,7 +911,7 @@ class IP2LocationCountryBlocker
 				</div>
 
 				<p class="submit">
-					<input type="submit" name="submit" id="submit" class="button button-primary" value="' . __('Save Changes', 'ip2location-country-blocker') . '" />
+					<input type="submit" name="submit" id="submit" class="button button-primary" value="' . esc_html__('Save Changes', 'ip2location-country-blocker') . '" />
 				</p>
 			</form>
 			<div class="clear"></div>
@@ -921,13 +934,13 @@ class IP2LocationCountryBlocker
 		// Remove logs older than 30 days.
 		$this->wpdb_query(
 			'DELETE FROM ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_log WHERE date_created <= %s',
-			[date('Y-m-d H:i:s', strtotime('-30 days'))]
+			[gmdate('Y-m-d H:i:s', strtotime('-30 days'))]
 		);
 
 		$lines = [];
 		for ($d = 30; $d > 0; --$d) {
-			$lines[date('Y-m-d', strtotime('-' . $d . ' days'))][1] = 0;
-			$lines[date('Y-m-d', strtotime('-' . $d . ' days'))][2] = 0;
+			$lines[gmdate('Y-m-d', strtotime('-' . $d . ' days'))][1] = 0;
+			$lines[gmdate('Y-m-d', strtotime('-' . $d . ' days'))][2] = 0;
 		}
 
 		// Prepare logs for last 30 days.
@@ -993,59 +1006,59 @@ class IP2LocationCountryBlocker
 
 		echo '
 		<div class="wrap">
-			<h1>' . __('Statistics (Past 30 Days)', 'ip2location-country-blocker') . '</h1>
+			<h1>' . esc_html__('Statistics (Past 30 Days)', 'ip2location-country-blocker') . '</h1>
 
-			' . (($this->get_option('log_enabled')) ? '' : '<div class="notice notice-warning inline"><p>' . sprintf(__('Visitor log is disabled. Please enable it in the %1$sSettings%2$s page to collect statistics data.', 'ip2location-country-blocker'), '<a href="admin.php?page=ip2location-country-blocker-settings">', '</a>') . '</p></div>') . '
+			' . (($this->get_option('log_enabled')) ? '' : '<div class="notice notice-warning inline"><p>' . sprintf(/* translators: %1$s: opening link tag, %2$s: closing link tag. */ esc_html__('Visitor log is disabled. Please enable it in the %1$sSettings%2$s page to collect statistics data.', 'ip2location-country-blocker'), '<a href="admin.php?page=ip2location-country-blocker-settings">', '</a>') . '</p></div>') . '
 
 			<div class="iplcb-stat-grid">
 				<div class="iplcb-stat-card">
-					<span class="iplcb-stat-label">' . __('Total Blocked', 'ip2location-country-blocker') . '</span>
+					<span class="iplcb-stat-label">' . esc_html__('Total Blocked', 'ip2location-country-blocker') . '</span>
 					<span class="iplcb-stat-value">' . number_format($total_all) . '</span>
-					<span class="iplcb-stat-sub">' . __('Last 30 days', 'ip2location-country-blocker') . '</span>
+					<span class="iplcb-stat-sub">' . esc_html__('Last 30 days', 'ip2location-country-blocker') . '</span>
 				</div>
 				<div class="iplcb-stat-card">
-					<span class="iplcb-stat-label">' . __('Frontend Blocks', 'ip2location-country-blocker') . '</span>
+					<span class="iplcb-stat-label">' . esc_html__('Frontend Blocks', 'ip2location-country-blocker') . '</span>
 					<span class="iplcb-stat-value">' . number_format($total_frontend) . '</span>
-					<span class="iplcb-stat-sub">' . __('Visitors blocked', 'ip2location-country-blocker') . '</span>
+					<span class="iplcb-stat-sub">' . esc_html__('Visitors blocked', 'ip2location-country-blocker') . '</span>
 				</div>
 				<div class="iplcb-stat-card">
-					<span class="iplcb-stat-label">' . __('Backend Blocks', 'ip2location-country-blocker') . '</span>
+					<span class="iplcb-stat-label">' . esc_html__('Backend Blocks', 'ip2location-country-blocker') . '</span>
 					<span class="iplcb-stat-value">' . number_format($total_backend) . '</span>
-					<span class="iplcb-stat-sub">' . __('Admin area attempts', 'ip2location-country-blocker') . '</span>
+					<span class="iplcb-stat-sub">' . esc_html__('Admin area attempts', 'ip2location-country-blocker') . '</span>
 				</div>
 				<div class="iplcb-stat-card">
-					<span class="iplcb-stat-label">' . __('Unique IPs Blocked', 'ip2location-country-blocker') . '</span>
+					<span class="iplcb-stat-label">' . esc_html__('Unique IPs Blocked', 'ip2location-country-blocker') . '</span>
 					<span class="iplcb-stat-value">' . number_format($unique_ips) . '</span>
-					<span class="iplcb-stat-sub">' . (($top_country_code) ? sprintf(__('Top country: %1$s (%2$s)', 'ip2location-country-blocker'), esc_html($this->get_country_name($top_country_code)), number_format($top_country_total)) : '') . '</span>
+					<span class="iplcb-stat-sub">' . (($top_country_code) ? sprintf(/* translators: %1$s: a value, %2$s: a value. */ esc_html__('Top country: %1$s (%2$s)', 'ip2location-country-blocker'), esc_html($this->get_country_name($top_country_code)), number_format($top_country_total)) : '') . '</span>
 				</div>
 			</div>
 
 			<div class="iplcb-panel">
-				<h3>' . __('Blocks Over Time', 'ip2location-country-blocker') . '</h3>
-				<p class="description">' . __('Number of blocked visitors per day over the last 30 days.', 'ip2location-country-blocker') . '</p>
+				<h3>' . esc_html__('Blocks Over Time', 'ip2location-country-blocker') . '</h3>
+				<p class="description">' . esc_html__('Number of blocked visitors per day over the last 30 days.', 'ip2location-country-blocker') . '</p>
 				<div class="iplcb-chart-wrap tall"><canvas id="line_chart"></canvas></div>
 			</div>
 
 			<div class="iplcb-cols">
 				<div class="iplcb-panel">
-					<h3>' . __('Frontend', 'ip2location-country-blocker') . '</h3>';
+					<h3>' . esc_html__('Frontend', 'ip2location-country-blocker') . '</h3>';
 
 		if (empty($frontends['countries'])) {
 			echo '
-					<p class="description">' . __('No frontend blocking data available.', 'ip2location-country-blocker') . '</p>';
+					<p class="description">' . esc_html__('No frontend blocking data available.', 'ip2location-country-blocker') . '</p>';
 		} else {
 			echo '
 					<div class="iplcb-chart-wrap"><canvas id="pie_chart_frontend"></canvas></div>
 
-					<h4>' . __('Top 10 IP Addresses Blocked', 'ip2location-country-blocker') . '</h4>
+					<h4>' . esc_html__('Top 10 IP Addresses Blocked', 'ip2location-country-blocker') . '</h4>
 
 					<table class="wp-list-table widefat striped">
 						<thead>
 							<tr>
 								<th width="40">#</th>
-								<th>' . __('IP Address', 'ip2location-country-blocker') . '</th>
-								<th>' . __('Country Code', 'ip2location-country-blocker') . '</th>
-								<th>' . __('Total', 'ip2location-country-blocker') . '</th>
+								<th>' . esc_html__('IP Address', 'ip2location-country-blocker') . '</th>
+								<th>' . esc_html__('Country Code', 'ip2location-country-blocker') . '</th>
+								<th>' . esc_html__('Total', 'ip2location-country-blocker') . '</th>
 							</tr>
 						</thead>
 						<tbody>';
@@ -1058,7 +1071,7 @@ class IP2LocationCountryBlocker
 				foreach ($results as $result) {
 					echo '
 							<tr>
-								<td>' . $rank . '</td>
+								<td>' . esc_html($rank) . '</td>
 								<td>' . esc_html($result->ip_address) . '</td>
 								<td>' . esc_html($result->country_code) . '</td>
 								<td>' . esc_html($result->total) . '</td>
@@ -1076,24 +1089,24 @@ class IP2LocationCountryBlocker
 				</div>
 
 				<div class="iplcb-panel">
-					<h3>' . __('Backend', 'ip2location-country-blocker') . '</h3>';
+					<h3>' . esc_html__('Backend', 'ip2location-country-blocker') . '</h3>';
 
 		if (empty($backends['countries'])) {
 			echo '
-					<p class="description">' . __('No backend blocking data available.', 'ip2location-country-blocker') . '</p>';
+					<p class="description">' . esc_html__('No backend blocking data available.', 'ip2location-country-blocker') . '</p>';
 		} else {
 			echo '
 					<div class="iplcb-chart-wrap"><canvas id="pie_chart_backend"></canvas></div>
 
-					<h4>' . __('Top 10 IP Addresses Blocked', 'ip2location-country-blocker') . '</h4>
+					<h4>' . esc_html__('Top 10 IP Addresses Blocked', 'ip2location-country-blocker') . '</h4>
 
 					<table class="wp-list-table widefat striped">
 						<thead>
 							<tr>
 								<th width="40">#</th>
-								<th>' . __('IP Address', 'ip2location-country-blocker') . '</th>
-								<th>' . __('Country Code', 'ip2location-country-blocker') . '</th>
-								<th>' . __('Total', 'ip2location-country-blocker') . '</th>
+								<th>' . esc_html__('IP Address', 'ip2location-country-blocker') . '</th>
+								<th>' . esc_html__('Country Code', 'ip2location-country-blocker') . '</th>
+								<th>' . esc_html__('Total', 'ip2location-country-blocker') . '</th>
 							</tr>
 						</thead>
 						<tbody>';
@@ -1106,7 +1119,7 @@ class IP2LocationCountryBlocker
 				foreach ($results as $result) {
 					echo '
 							<tr>
-								<td>' . $rank . '</td>
+								<td>' . esc_html($rank) . '</td>
 								<td>' . esc_html($result->ip_address) . '</td>
 								<td>' . esc_html($result->country_code) . '</td>
 								<td>' . esc_html($result->total) . '</td>
@@ -1126,11 +1139,15 @@ class IP2LocationCountryBlocker
 
 			<div class="iplcb-purge">
 				<form id="form-purge" method="post">
-					' . wp_nonce_field('purge_logs') . '
+					';
+
+					wp_nonce_field('purge_logs');
+
+					echo '
 					<input type="hidden" name="purge" value="true">
-					<input type="submit" name="submit" id="btn-purge" class="button button-secondary" value="' . __('Purge All Logs', 'ip2location-country-blocker') . '" />
+					<input type="submit" name="submit" id="btn-purge" class="button button-secondary" value="' . esc_html__('Purge All Logs', 'ip2location-country-blocker') . '" />
 				</form>
-				<p class="description">' . __('Permanently delete all stored statistics logs.', 'ip2location-country-blocker') . '</p>
+				<p class="description">' . esc_html__('Permanently delete all stored statistics logs.', 'ip2location-country-blocker') . '</p>
 			</div>
 		</div>
 
@@ -1185,10 +1202,10 @@ class IP2LocationCountryBlocker
 						data: {
 							labels: ' . wp_json_encode($frontends['countries']) . ',
 							datasets: [{
-								backgroundColor: [' . implode(',', array_map(function ($c) { return "'" . $c . "'"; }, $frontends['colors'])) . '],
+								backgroundColor: ' . wp_json_encode(array_values($frontends['colors'])) . ',
 								borderColor: \'#ffffff\',
 								borderWidth: 2,
-								data: [' . implode(',', $frontends['totals']) . ']
+								data: ' . wp_json_encode(array_values($frontends['totals'])) . '
 							}]
 						},
 						options: {
@@ -1213,10 +1230,10 @@ class IP2LocationCountryBlocker
 						data: {
 							labels: ' . wp_json_encode($backends['countries']) . ',
 							datasets: [{
-								backgroundColor: [' . implode(',', array_map(function ($c) { return "'" . $c . "'"; }, $backends['colors'])) . '],
+								backgroundColor: ' . wp_json_encode(array_values($backends['colors'])) . ',
 								borderColor: \'#ffffff\',
 								borderWidth: 2,
-								data: [' . implode(',', $backends['totals']) . ']
+								data: ' . wp_json_encode(array_values($backends['totals'])) . '
 							}]
 						},
 						options: {
@@ -1253,7 +1270,7 @@ class IP2LocationCountryBlocker
 			if (!filter_var($ip_address, \FILTER_VALIDATE_IP, \FILTER_FLAG_NO_PRIV_RANGE | \FILTER_FLAG_NO_RES_RANGE)) {
 				$ip_lookup_status = '
 				<div class="error">
-					<p>' . sprintf(__('%1$sERROR:%2$s Please enter an IP address.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
+					<p>' . sprintf(/* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __('%1$sERROR:%2$s Please enter an IP address.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
 				</div>';
 			} else {
 				$result = $this->get_location($ip_address);
@@ -1261,13 +1278,20 @@ class IP2LocationCountryBlocker
 				if (empty($result['country_code'])) {
 					$ip_lookup_status = '
 					<div class="error">
-						<p>' . sprintf(__('%1$sERROR:%2$s Unable to lookup IP address %3$s%4$s%5$s.', 'ip2location-country-blocker'), '<strong>', '</strong>', '<strong>', esc_html($ip_address), '</strong>') . '</p>
+						<p>' . sprintf(/* translators: %1$s: opening bold tag, %2$s: closing bold tag, %3$s: opening bold tag, %4$s: a value, %5$s: closing bold tag. */ __('%1$sERROR:%2$s Unable to lookup IP address %3$s%4$s%5$s.', 'ip2location-country-blocker'), '<strong>', '</strong>', '<strong>', esc_html($ip_address), '</strong>') . '</p>
 					</div>';
 				} else {
 					$ip_lookup_status = '
 					<div class="updated">
-						<p>' . sprintf(__('IP address %1$s%2$s%3$s belongs to %4$s%5$s (%6$s)%7$s.', 'ip2location-country-blocker'), '<code>', esc_html($ip_address), '</code>', '<strong>', esc_html($result['country_name']), esc_html($result['country_code']), '<strong>') . '</p>
+						<p>' . sprintf(/* translators: %1$s: opening code tag, %2$s: a value, %3$s: closing code tag, %4$s: opening bold tag, %5$s: a value, %6$s: a value, %7$s: opening bold tag. */ __('IP address %1$s%2$s%3$s belongs to %4$s%5$s (%6$s)%7$s.', 'ip2location-country-blocker'), '<code>', esc_html($ip_address), '</code>', '<strong>', esc_html($result['country_name']), esc_html($result['country_code']), '<strong>') . '</p>
 					</div>';
+
+					if (!empty($result['region']) || !empty($result['city'])) {
+						$ip_lookup_status .= '
+						<div class="updated">
+							<p>' . esc_html__('Region', 'ip2location-country-blocker') . ': ' . esc_html($result['region']) . '<br />' . esc_html__('City', 'ip2location-country-blocker') . ': ' . esc_html($result['city']) . '</p>
+						</div>';
+					}
 
 					if (!empty($result['is_proxy'])) {
 						$ip_lookup_status .= '
@@ -1281,24 +1305,28 @@ class IP2LocationCountryBlocker
 
 		echo '
 		<div class="wrap">
-			<h1>' . __('IP Lookup', 'ip2location-country-blocker') . '</h1>
+			<h1>' . esc_html__('IP Lookup', 'ip2location-country-blocker') . '</h1>
 
-			' . $ip_lookup_status . '
+			' . wp_kses_post($ip_lookup_status) . '
 
 			<form method="post" novalidate="novalidate">
-				' . wp_nonce_field('ip_lookup') . '
+				';
+
+				wp_nonce_field('ip_lookup');
+
+				echo '
 				<table class="form-table">
 					<tr>
-						<th scope="row"><label for="ip_address">' . __('IP Address', 'ip2location-country-blocker') . '</label></th>
+						<th scope="row"><label for="ip_address">' . esc_html__('IP Address', 'ip2location-country-blocker') . '</label></th>
 						<td>
 							<input name="ip_address" type="text" id="ip_address" value="' . esc_attr($ip_address) . '" class="regular-text" />
-							<p class="description">' . __('Enter a valid IP address to lookup for country information.', 'ip2location-country-blocker') . '</p>
+							<p class="description">' . esc_html__('Enter a valid IP address to lookup for country information.', 'ip2location-country-blocker') . '</p>
 						</td>
 					</tr>
 				</table>
 
 				<p class="submit">
-					<input type="submit" name="submit" id="submit" class="button button-primary" value="' . __('Lookup', 'ip2location-country-blocker') . '" />
+					<input type="submit" name="submit" id="submit" class="button button-primary" value="' . esc_html__('Lookup', 'ip2location-country-blocker') . '" />
 				</p>
 			</form>
 
@@ -1334,9 +1362,19 @@ class IP2LocationCountryBlocker
 		$enable_log = $this->is_checked('enable_log', $this->get_option('log_enabled'));
 		$enable_lookup_cache = $this->is_checked('enable_lookup_cache', $this->get_option('lookup_cache_enabled'));
 		$enable_debug_log = $this->is_checked('enable_debug_log', $this->get_option('debug_log_enabled'));
+		$debug_ip = trim((string) $this->post('debug_ip', $this->get_option('debug_ip')));
+
+		if ($debug_ip && !filter_var($debug_ip, FILTER_VALIDATE_IP)) {
+			$debug_ip = '';
+		}
 		$real_ip_header = $this->post('real_ip_header', $this->get_option('real_ip_header'));
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- sanitised with wp_kses when saved.
 		$custom_error_html = (isset($_POST['custom_error_html'])) ? wp_unslash($_POST['custom_error_html']) : $this->get_option('custom_error_html');
 		$show_logo = $this->is_checked('show_logo', $this->get_option('show_logo'));
+		$bypass_logged_in = $this->is_checked('bypass_logged_in', $this->get_option('bypass_logged_in'));
+		$bypass_roles = $this->post('bypass_roles', $this->post('submit') ? [] : $this->get_option('bypass_roles'));
+		$bypass_roles = is_array($bypass_roles) ? $bypass_roles : [];
+		$roles = wp_roles()->get_names();
 
 		if (!in_array($real_ip_header, array_values($real_ip_headers))) {
 			$real_ip_header = '';
@@ -1360,7 +1398,7 @@ class IP2LocationCountryBlocker
 				if (empty($api_key)) {
 					$settings_status = '
 					<div class="error">
-						<p>' . sprintf(__('%1$sERROR:%2$s Invalid IP2Location API key.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
+						<p>' . sprintf(/* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __('%1$sERROR:%2$s Invalid IP2Location API key.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
 					</div>';
 				} else {
 					$response = wp_remote_get('https://api.ip2location.io/?' . http_build_query([
@@ -1382,13 +1420,13 @@ class IP2LocationCountryBlocker
 						if (empty($json)) {
 							$settings_status = '
 							<div class="error">
-								<p>' . sprintf(__('%1$sERROR:%2$s Error when accessing IP2Location web service gateway.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
+								<p>' . sprintf(/* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __('%1$sERROR:%2$s Error when accessing IP2Location web service gateway.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
 							</div>';
 						} else {
 							if (!preg_match('/^[0-9]+$/', $json->response)) {
 								$settings_status = '
 								<div class="error">
-									<p>' . sprintf(__('%1$sERROR:%2$s Invalid IP2Location API key.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
+									<p>' . sprintf(/* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __('%1$sERROR:%2$s Invalid IP2Location API key.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
 								</div>';
 							} else {
 								$this->update_option('api_key', $api_key);
@@ -1398,7 +1436,7 @@ class IP2LocationCountryBlocker
 						if (!preg_match('/^[0-9]+$/', $json->response)) {
 							$settings_status = '
 							<div class="error">
-								<p>' . sprintf(__('%1$sERROR:%2$s Invalid IP2Location API key.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
+								<p>' . sprintf(/* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __('%1$sERROR:%2$s Invalid IP2Location API key.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
 							</div>';
 						} else {
 							$this->update_option('api_key', $api_key);
@@ -1411,7 +1449,7 @@ class IP2LocationCountryBlocker
 				if (empty($px_api_key)) {
 					$settings_status .= '
 					<div class="error">
-						' . sprintf(__('%1$sERROR:%2$s Invalid IP2Proxy API key.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
+						' . sprintf(/* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __('%1$sERROR:%2$s Invalid IP2Proxy API key.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
 					</div>';
 				} else {
 					$response = wp_remote_get('https://api.ip2location.io/?' . http_build_query([
@@ -1432,13 +1470,13 @@ class IP2LocationCountryBlocker
 						if (empty($json)) {
 							$settings_status = '
 							<div class="error">
-								<p>' . sprintf(__('%1$sERROR:%2$s Error when accessing IP2Proxy web service gateway.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
+								<p>' . sprintf(/* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __('%1$sERROR:%2$s Error when accessing IP2Proxy web service gateway.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
 							</div>';
 						} else {
 							if (!preg_match('/^[0-9]+$/', $json->response)) {
 								$settings_status .= '
 								<div class="error">
-									<p>' . sprintf(__('%1$sERROR:%2$s Invalid IP2Proxy API key.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
+									<p>' . sprintf(/* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __('%1$sERROR:%2$s Invalid IP2Proxy API key.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
 								</div>';
 							} else {
 								$this->update_option('px_api_key', $px_api_key);
@@ -1448,7 +1486,7 @@ class IP2LocationCountryBlocker
 						if (!preg_match('/^[0-9]+$/', $json->response)) {
 							$settings_status .= '
 							<div class="error">
-								<p>' . sprintf(__('%1$sERROR:%2$s Invalid IP2Proxy API key.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
+								<p>' . sprintf(/* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __('%1$sERROR:%2$s Invalid IP2Proxy API key.', 'ip2location-country-blocker'), '<strong>', '</strong>') . '</p>
 							</div>';
 						} else {
 							$this->update_option('px_api_key', $px_api_key);
@@ -1479,6 +1517,7 @@ class IP2LocationCountryBlocker
 				$this->update_option('log_enabled', $enable_log);
 				$this->update_option('lookup_cache_enabled', $enable_lookup_cache);
 				$this->update_option('debug_log_enabled', $enable_debug_log);
+				$this->update_option('debug_ip', $debug_ip);
 				$this->update_option('real_ip_header', $real_ip_header);
 				$this->update_option('custom_error_html', wp_kses($custom_error_html, array_merge(wp_kses_allowed_html('post'), [
 					'html'  => ['lang' => true, 'dir' => true],
@@ -1489,6 +1528,8 @@ class IP2LocationCountryBlocker
 					'link'  => ['rel' => true, 'href' => true, 'type' => true, 'media' => true],
 				])));
 				$this->update_option('show_logo', $show_logo);
+				$this->update_option('bypass_logged_in', $bypass_logged_in);
+				$this->update_option('bypass_roles', $bypass_roles);
 
 				$settings_status = '
 				<div class="updated">
@@ -1502,9 +1543,9 @@ class IP2LocationCountryBlocker
 
 		echo '
 		<div class="wrap">
-			<h1>' . __('Settings', 'ip2location-country-blocker') . '</h1>
+			<h1>' . esc_html__('Settings', 'ip2location-country-blocker') . '</h1>
 
-			' . $settings_status;
+			' . wp_kses_post($settings_status);
 
 		if ($this->get_option('session_message')) {
 			echo '
@@ -1516,17 +1557,21 @@ class IP2LocationCountryBlocker
 		}
 
 		echo '
-			<form action="' . get_admin_url() . 'admin.php?page=ip2location-country-blocker-settings" method="post" novalidate="novalidate">
-				' . wp_nonce_field('settings') . '
+			<form action="' . esc_url(get_admin_url()) . 'admin.php?page=ip2location-country-blocker-settings" method="post" novalidate="novalidate">
+				';
+
+				wp_nonce_field('settings');
+
+				echo '
 				<table class="form-table">
 					<tr>
 						<th scope="row">
-							<label for="lookup_mode">' . __('IP2Location Lookup Mode', 'ip2location-country-blocker') . '</label>
+							<label for="lookup_mode">' . esc_html__('IP2Location Lookup Mode', 'ip2location-country-blocker') . '</label>
 						</th>
 						<td>
 							<select name="lookup_mode" id="lookup_mode"' . (($disabled) ? ' disabled' : '') . '>
-								<option value="bin"' . (($lookup_mode == 'bin') ? ' selected' : '') . '> ' . __('Local BIN Database', 'ip2location-country-blocker') . '</option>
-								<option value="ws"' . (($lookup_mode == 'ws') ? ' selected' : '') . '> ' . __('API Web Service', 'ip2location-country-blocker') . '</option>
+								<option value="bin"' . (($lookup_mode == 'bin') ? ' selected' : '') . '> ' . esc_html__('Local BIN Database', 'ip2location-country-blocker') . '</option>
+								<option value="ws"' . (($lookup_mode == 'ws') ? ' selected' : '') . '> ' . esc_html__('API Web Service', 'ip2location-country-blocker') . '</option>
 							</select>
 						</td>
 					</tr>
@@ -1538,12 +1583,12 @@ class IP2LocationCountryBlocker
 									<table class="form-table">
 										<tr>
 											<th scope="row">
-												<label for="download_token">' . __('Download Token', 'ip2location-country-blocker') . '</label>
+												<label for="download_token">' . esc_html__('Download Token', 'ip2location-country-blocker') . '</label>
 											</th>
 											<td>
 												<input type="text" name="download_token" id="download_token" value="' . esc_attr($download_token) . '" class="regular-text code input-field"' . (($disabled) ? ' disabled' : '') . ' />
 												<p class="description">
-													' . __('Enter your IP2Location download token.', 'ip2location-country-blocker') . '
+													' . esc_html__('Enter your IP2Location download token.', 'ip2location-country-blocker') . '
 												</p>
 											</td>
 										</tr>
@@ -1551,34 +1596,34 @@ class IP2LocationCountryBlocker
 											<td></td>
 											<td>
 												<label for="download_ipv4_only">
-													<input type="checkbox" name="download_ipv4_only" id="download_ipv4_only" value="true"' . (($download_ipv4_only) ? ' checked' : '') . (($disabled) ? ' disabled' : '') . '> ' . __('Download IPv4 database only', 'ip2location-country-blocker') . '
+													<input type="checkbox" name="download_ipv4_only" id="download_ipv4_only" value="true"' . (($download_ipv4_only) ? ' checked' : '') . (($disabled) ? ' disabled' : '') . '> ' . esc_html__('Download IPv4 database only', 'ip2location-country-blocker') . '
 												</label>
 
 												<p class="description">
-													' . __('Download a smaller database which is faster in lookup speed. Perfect for website with only IPv4 supported.', 'ip2location-country-blocker') . '
+													' . esc_html__('Download a smaller database which is faster in lookup speed. Perfect for website with only IPv4 supported.', 'ip2location-country-blocker') . '
 												</p>
 											</td>
 										</tr>
 										<tr>
 											<th scope="row">
-												<label>' . __('Database File', 'ip2location-country-blocker') . '</label>
+												<label>' . esc_html__('Database File', 'ip2location-country-blocker') . '</label>
 											</th>
 											<td>
 												<div>' . ((!is_file(IP2LOCATION_DIR . $this->get_option('database'))) ? '<span class="dashicons dashicons-warning" title="Database file not found."></span>' : '') . esc_html($this->get_option('database')) . '
-												' . ((preg_match('/LITE/', $this->get_option('database'))) ? '<p class="description">' . sprintf(__('If you are looking for high accuracy result, you should consider using the commercial version of %1$sIP2Location BIN database%2$s.', 'ip2location-country-blocker'), '<a href="https://www.ip2location.com/database/db1-ip-country#wordpress-wzdicb" target="_blank">', '</a>') . '</p>' : '') . '
-											</td>
+												' . ((preg_match('/LITE/', $this->get_option('database'))) ? '<p class="description">' . sprintf(/* translators: %1$s: opening link tag, %2$s: closing link tag. */ esc_html__('If you are looking for high accuracy result, you should consider using the commercial version of %1$sIP2Location BIN database%2$s.', 'ip2location-country-blocker'), '<a href="https://www.ip2location.com/database/db1-ip-country#wordpress-wzdicb" target="_blank">', '</a>') . '</p>' : '') . '
+												</div></td>
 										</tr>
 										<tr>
 											<th scope="row">
-												<label>' . __('Database Path', 'ip2location-country-blocker') . '</label>
+												<label>' . esc_html__('Database Path', 'ip2location-country-blocker') . '</label>
 											</th>
 											<td>
-												<div>' . IP2LOCATION_DIR . '</div>
+												<div>' . esc_html(IP2LOCATION_DIR) . '</div>
 											</td>
 										</tr>
 										<tr>
 											<th scope="row">
-												<label>' . __('Database Date', 'ip2location-country-blocker') . '</label>
+												<label>' . esc_html__('Database Date', 'ip2location-country-blocker') . '</label>
 											</th>
 											<td>
 												' . esc_html(($date) ?: '-') . '
@@ -1586,11 +1631,11 @@ class IP2LocationCountryBlocker
 										</tr>
 										<tr>
 											<td></td>
-											<td id="update_status"><td>
+											<td id="update_status"></td>
 										</tr>
 										<tr>
 											<td></td>
-											<td><button id="update_ip2location_database" type="button" class="button button-secondary"' . (($disabled) ? ' disabled' : '') . '>' . __('Update Database', 'ip2location-country-blocker') . '</button></td>
+											<td><button id="update_ip2location_database" type="button" class="button button-secondary"' . (($disabled) ? ' disabled' : '') . '>' . esc_html__('Update Database', 'ip2location-country-blocker') . '</button></td>
 										</tr>
 									</table>
 								</div>
@@ -1656,13 +1701,13 @@ class IP2LocationCountryBlocker
 					</tr>
 					<tr>
 						<th scope="row">
-							<label for="px_lookup_mode">' . __('IP2Proxy Lookup Mode', 'ip2location-country-blocker') . '</label>
+							<label for="px_lookup_mode">' . esc_html__('IP2Proxy Lookup Mode', 'ip2location-country-blocker') . '</label>
 						</th>
 						<td>
 							<select name="px_lookup_mode" id="px_lookup_mode"' . (($disabled) ? ' disabled' : '') . '>
-								<option value=""' . (($px_lookup_mode == '') ? ' selected' : '') . '> ' . __('Disabled', 'ip2location-country-blocker') . '</option>
-								<option value="px_bin"' . (($px_lookup_mode == 'px_bin') ? ' selected' : '') . '> ' . __('Local BIN Database', 'ip2location-country-blocker') . '</option>
-								<option value="px_ws"' . (($px_lookup_mode == 'px_ws') ? ' selected' : '') . '> ' . __('API Web Service', 'ip2location-country-blocker') . '</option>
+								<option value=""' . (($px_lookup_mode == '') ? ' selected' : '') . '> ' . esc_html__('Disabled', 'ip2location-country-blocker') . '</option>
+								<option value="px_bin"' . (($px_lookup_mode == 'px_bin') ? ' selected' : '') . '> ' . esc_html__('Local BIN Database', 'ip2location-country-blocker') . '</option>
+								<option value="px_ws"' . (($px_lookup_mode == 'px_ws') ? ' selected' : '') . '> ' . esc_html__('API Web Service', 'ip2location-country-blocker') . '</option>
 							</select>
 						</td>
 					</tr>
@@ -1674,12 +1719,12 @@ class IP2LocationCountryBlocker
 									<table class="form-table">
 										<tr>
 											<th scope="row">
-												<label for="download_token">' . __('Download Token', 'ip2location-country-blocker') . '</label>
+												<label for="download_token">' . esc_html__('Download Token', 'ip2location-country-blocker') . '</label>
 											</th>
 											<td>
 												<input type="text" name="px_download_token" id="px_download_token" value="' . esc_attr($download_token) . '" class="regular-text code input-field"' . (($disabled) ? ' disabled' : '') . ' />
 												<p class="description">
-													' . __('Enter your IP2Location download token.', 'ip2location-country-blocker') . '
+													' . esc_html__('Enter your IP2Location download token.', 'ip2location-country-blocker') . '
 												</p>
 											</td>
 										</tr>
@@ -1697,7 +1742,7 @@ class IP2LocationCountryBlocker
 												<label>Database Path</label>
 											</th>
 											<td>
-												<div>' . IP2LOCATION_DIR . '</div>
+												<div>' . esc_html(IP2LOCATION_DIR) . '</div>
 											</td>
 										</tr>
 										<tr>
@@ -1710,7 +1755,7 @@ class IP2LocationCountryBlocker
 										</tr>
 										<tr>
 											<td></td>
-											<td id="px_update_status"><td>
+											<td id="px_update_status"></td>
 										</tr>
 										<tr>
 											<td></td>
@@ -1778,55 +1823,142 @@ class IP2LocationCountryBlocker
 					</tr>
 					<tr>
 						<th scope="row">
-							<label for="trust_x_forwarded_for">' . __('Trust the X-Forwarded-For header to detect the visitor IP', 'ip2location-country-blocker') . '</label>
+							<label for="trust_x_forwarded_for">' . esc_html__('Trust the X-Forwarded-For header to detect the visitor IP', 'ip2location-country-blocker') . '</label>
 						</th>
 						<td>
 							<label for="trust_x_forwarded_for">
-								<input type="checkbox" name="trust_x_forwarded_for" id="trust_x_forwarded_for" value="1"' . (($trust_x_forwarded_for == 1) ? ' checked' : '') . ' /> ' . __('Enable', 'ip2location-country-blocker') . '
+								<input type="checkbox" name="trust_x_forwarded_for" id="trust_x_forwarded_for" value="1"' . (($trust_x_forwarded_for == 1) ? ' checked' : '') . ' /> ' . esc_html__('Enable', 'ip2location-country-blocker') . '
 								<p class="description">
-									' . __('Only use the X-Forwarded-For header to determine the visitor IP when this option is enabled. Keep it disabled to always use the direct connection IP (REMOTE_ADDR) and ignore spoofed proxy headers.', 'ip2location-country-blocker') . '
+									' . esc_html__('Only use the X-Forwarded-For header to determine the visitor IP when this option is enabled. Keep it disabled to always use the direct connection IP (REMOTE_ADDR) and ignore spoofed proxy headers.', 'ip2location-country-blocker') . '
 								</p>
 							</label>
 						</td>
 					</tr>
 					<tr>
 						<th scope="row">
-							<label for="enable_log">' . __('Visitor Logs', 'ip2location-country-blocker') . '</label>
+							<label for="enable_log">' . esc_html__('Visitor Logs', 'ip2location-country-blocker') . '</label>
 						</th>
 						<td>
 							<label for="enable_log">
-								<input type="checkbox" name="enable_log" id="enable_log" value="1"' . (($enable_log == 1) ? ' checked' : '') . ' /> ' . __('Enable Logging', 'ip2location-country-blocker') . '
+								<input type="checkbox" name="enable_log" id="enable_log" value="1"' . (($enable_log == 1) ? ' checked' : '') . ' /> ' . esc_html__('Enable Logging', 'ip2location-country-blocker') . '
 								<p class="description">
-									' . __('No statistics will be available if this option is disabled.', 'ip2location-country-blocker') . '
+									' . esc_html__('No statistics will be available if this option is disabled.', 'ip2location-country-blocker') . '
 								</p>
 							</label>
 						</td>
 					</tr>
 					<tr>
 						<th scope="row">
-							<label for="enable_lookup_cache">' . __('Lookup Cache', 'ip2location-country-blocker') . '</label>
+							<label for="enable_lookup_cache">' . esc_html__('Lookup Cache', 'ip2location-country-blocker') . '</label>
 						</th>
 						<td>
 							<label for="enable_lookup_cache">
-								<input type="checkbox" name="enable_lookup_cache" id="enable_lookup_cache" value="1"' . (($enable_lookup_cache == 1) ? ' checked' : '') . ' /> ' . __('Enable lookup cache', 'ip2location-country-blocker') . '
+								<input type="checkbox" name="enable_lookup_cache" id="enable_lookup_cache" value="1"' . (($enable_lookup_cache == 1) ? ' checked' : '') . ' /> ' . esc_html__('Enable lookup cache', 'ip2location-country-blocker') . '
 								<p class="description">
-									' . __('Cache geolocation results to speed up page loading. Disable if you need fresh lookup results on every visit.', 'ip2location-country-blocker') . '
+									' . esc_html__('Cache geolocation results to speed up page loading. Disable if you need fresh lookup results on every visit.', 'ip2location-country-blocker') . '
 								</p>
 							</label>
 
-							<button id="btn_clear_cache" type="button" class="button button-danger" style="margin-top: 1em;">' . __('Clear Cache', 'ip2location-country-blocker') . ' (' . $this->display_bytes($this->cache_size()) . ')</button>
-							<input type="hidden" id="cache_nonce" value="' . wp_create_nonce('cache') . '">
+							<button id="btn_clear_cache" type="button" class="button button-danger" style="margin-top: 1em;">' . esc_html__('Clear Cache', 'ip2location-country-blocker') . ' (' . esc_html($this->display_bytes($this->cache_size())) . ')</button>
+							<input type="hidden" id="cache_nonce" value="' . esc_attr(wp_create_nonce('cache')) . '">
 						</td>
 					</tr>
 					<tr>
 						<th scope="row">
-							<label for="enable_debug_log">' . __('Debugging Logs', 'ip2location-country-blocker') . '</label>
+							<label for="custom_error_html">' . esc_html__('Custom Error Page', 'ip2location-country-blocker') . '</label>
+						</th>
+						<td>
+							<textarea name="custom_error_html" id="custom_error_html" rows="8" cols="60" class="large-text code">' . esc_textarea($custom_error_html) . '</textarea>
+							<p class="description">' . esc_html__('Used instead of the default 403 page when a visitor is blocked. Full HTML and CSS are allowed; scripts are stripped for safety. Leave empty to use the default page.', 'ip2location-country-blocker') . '</p>
+							<label for="show_logo">
+								<input type="checkbox" name="show_logo" id="show_logo" value="1"' . (($show_logo == 1) ? ' checked' : '') . ' /> ' . esc_html__('Show IP2Location logo on the default error page.', 'ip2location-country-blocker') . '
+							</label>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label>' . esc_html__('Real IP Detection', 'ip2location-country-blocker') . '</label>
+						</th>
+						<td>
+							<select name="real_ip_header" id="real_ip_header">
+								<option value=""' . ((empty($real_ip_header)) ? ' selected' : '') . '> No Override</option>';
+		foreach ($real_ip_headers as $value) {
+			echo '
+								<option value="' . esc_attr($value) . '"' . (($real_ip_header == $value) ? ' selected' : '') . '> ' . esc_html($value) . '</option>';
+		}
+
+		echo '				</select>
+							<p class="description">
+								' . esc_html__('If your WordPress is installed behind a reverse proxy or load balancer, the real IP address of the visitors may not forwarded correctly and causing inaccurate country results. Use this option to override the IP detected by IP2Location.', 'ip2location-country-blocker') . '
+							</p>
+							<p class="description">
+								' . wp_kses(sprintf(/* translators: %s: a value. */ __('Detected IP: <strong>%s</strong>.', 'ip2location-country-blocker'), esc_html($this->ip())), ['strong' => []]) . '
+							</p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label for="bypass_logged_in">' . esc_html__('Bypass Blocking', 'ip2location-country-blocker') . '</label>
+						</th>
+						<td>
+							<label for="bypass_logged_in">
+								<input type="checkbox" name="bypass_logged_in" id="bypass_logged_in" value="1"' . (($bypass_logged_in) ? ' checked' : '') . ' />
+								' . esc_html__('Never block a logged-in user.', 'ip2location-country-blocker') . '
+							</label>
+							<p class="description">
+								' . esc_html__('Administrators always bypass. Tick any extra roles that should also skip frontend and backend blocking.', 'ip2location-country-blocker') . '
+							</p>';
+
+		foreach ($roles as $role_slug => $role_name) {
+			echo '
+							<label style="display:block;margin-top:4px;">
+								<input type="checkbox" name="bypass_roles[]" value="' . esc_attr($role_slug) . '"' . (($this->is_in_array($role_slug, $bypass_roles)) ? ' checked' : '') . ' />
+								' . esc_html($role_name) . '
+							</label>';
+		}
+
+		echo '
+						</td>
+					</tr>
+
+					<tr>
+						<th scope="row">
+							<label>' . esc_html__('Backup', 'ip2location-country-blocker') . '</label>
+						</th>
+						<td>
+							<button id="btn_download_backup" type="button" class="button button-secondary">' . esc_html__('Download Backup', 'ip2location-country-blocker') . '</button>
+							<p class="description">
+								' . esc_html__('Download all settings to restore your configuration on new installation.', 'ip2location-country-blocker') . '
+							</p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label>' . esc_html__('Restore', 'ip2location-country-blocker') . '</label>
+						</th>
+						<td>
+							<div id="restore_file"></div>
+							<p class="description">
+								' . esc_html__('Restore settings from previous installation.', 'ip2location-country-blocker') . '
+							</p>
+							<input type="hidden" id="restore_nonce" value="' . esc_attr(wp_create_nonce('restore')) . '">
+						</td>
+					</tr>
+
+				</table>
+
+				<h2 class="title" style="margin-top:25px;padding-bottom:5px">' . esc_html__('Debugging', 'ip2location-country-blocker') . '</h2>
+
+				<table class="form-table">
+					<tr>
+						<th scope="row">
+							<label for="enable_debug_log">' . esc_html__('Debugging Logs', 'ip2location-country-blocker') . '</label>
 						</th>
 						<td>
 							<label for="enable_debug_log">
-								<input type="checkbox" name="enable_debug_log" id="enable_debug_log" value="1"' . (($enable_debug_log == 1) ? ' checked' : '') . ' /> ' . __('Enable Debugging Log', 'ip2location-country-blocker') . '
+								<input type="checkbox" name="enable_debug_log" id="enable_debug_log" value="1"' . (($enable_debug_log == 1) ? ' checked' : '') . ' /> ' . esc_html__('Enable Debugging Log', 'ip2location-country-blocker') . '
 								<p class="description">
-									' . sprintf(__('Debug log will store under "%1s".', 'ip2location-country-blocker'), IP2LOCATION_DIR . $this->debug_log) . '
+									' . sprintf(/* translators: %1$s: full path of the debug log file. */ esc_html__('Debug log will store under "%1$s".', 'ip2location-country-blocker'), esc_html(IP2LOCATION_DIR . $this->debug_log)) . '
 									<br>
 									<strong>For security concerns, please disable this option after completed debugging process.</strong>
 								</p>
@@ -1835,70 +1967,27 @@ class IP2LocationCountryBlocker
 					</tr>
 					<tr>
 						<th scope="row">
-							<label for="custom_error_html">' . __('Custom Error Page', 'ip2location-country-blocker') . '</label>
+							<label for="debug_ip">' . esc_html__('Override Visitor IP', 'ip2location-country-blocker') . '</label>
 						</th>
 						<td>
-							<textarea name="custom_error_html" id="custom_error_html" rows="8" cols="60" class="large-text code">' . esc_textarea($custom_error_html) . '</textarea>
-							<p class="description">' . __('Used instead of the default 403 page when a visitor is blocked. Full HTML and CSS are allowed; scripts are stripped for safety. Leave empty to use the default page.', 'ip2location-country-blocker') . '</p>
-							<label for="show_logo">
-								<input type="checkbox" name="show_logo" id="show_logo" value="1"' . (($show_logo == 1) ? ' checked' : '') . ' /> ' . __('Show IP2Location logo on the default error page.', 'ip2location-country-blocker') . '
-							</label>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row">
-							<label>' . __('Real IP Detection', 'ip2location-country-blocker') . '</label>
-						</th>
-						<td>
-							<select name="real_ip_header" id="real_ip_header">
-								<option value=""' . ((empty($real_ip_header)) ? ' selected' : '') . '> No Override</option>';
-		foreach ($real_ip_headers as $value) {
-			echo '
-								<option value="' . $value . '"' . (($real_ip_header == $value) ? ' selected' : '') . '> ' . $value . '</option>';
-		}
-
-		echo '				</select>
+							<input type="text" name="debug_ip" id="debug_ip" value="' . esc_attr($debug_ip) . '" class="regular-text code" placeholder="' . esc_attr__('e.g. 8.8.8.8', 'ip2location-country-blocker') . '" />
 							<p class="description">
-								' . __('If your WordPress is installed behind a reverse proxy or load balancer, the real IP address of the visitors may not forwarded correctly and causing inaccurate country results. Use this option to override the IP detected by IP2Location.', 'ip2location-country-blocker') . '
+								' . esc_html__('For debugging only. Every visitor is treated as this IP address, so blocking rules can be tested without changing your own IP.', 'ip2location-country-blocker') . '
+								<br>
+								<strong>' . esc_html__('Leave this empty on a live site.', 'ip2location-country-blocker') . '</strong>
 							</p>
-							<p class="description">
-								' . __('Detected IP: <strong>' . esc_html($this->ip()) . '</strong>.', 'ip2location-country-blocker') . '
-							</p>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row">
-							<label>' . __('Backup', 'ip2location-country-blocker') . '</label>
-						</th>
-						<td>
-							<button id="btn_download_backup" type="button" class="button button-secondary">' . __('Download Backup', 'ip2location-country-blocker') . '</button>
-							<p class="description">
-								' . __('Download all settings to restore your configuration on new installation.', 'ip2location-country-blocker') . '
-							</p>
-						</td>
-					</tr>
-					<tr>
-						<th scope="row">
-							<label>' . __('Restore', 'ip2location-country-blocker') . '</label>
-						</th>
-						<td>
-							<div id="restore_file"></div>
-							<p class="description">
-								' . __('Restore settings from previous installation.', 'ip2location-country-blocker') . '
-							</p>
-							<input type="hidden" id="restore_nonce" value="' . wp_create_nonce('restore') . '">
 						</td>
 					</tr>
 				</table>
 				<p class="submit">
-					<input type="submit" name="submit" id="submit" class="button button-primary" value="' . __('Save Changes', 'ip2location-country-blocker') . '" />
+					<input type="submit" name="submit" id="submit" class="button button-primary" value="' . esc_html__('Save Changes', 'ip2location-country-blocker') . '" />
 				</p>
 			</form>
 			<div class="clear"></div>
 		</div>
 
 		<form id="form_download_backup" method="post">
-			<input type="hidden" id="backup_nonce" name="__nonce" value="' . wp_create_nonce('backup') . '">
+			<input type="hidden" id="backup_nonce" name="__nonce" value="' . esc_attr(wp_create_nonce('backup')) . '">
 			<input type="hidden" name="action" value="download_ip2location_country_blocker_backup">
 		</form>
 
@@ -1917,26 +2006,26 @@ class IP2LocationCountryBlocker
 			<div id="modal-get-started" class="ip2location-modal" style="display:block">
 				<div class="ip2location-modal-content">
 					<div align="center" style="margin:10px auto;">
-						<img src="' . plugins_url('/assets/img/logo.png', __FILE__) . '" width="200" height="24" align="center" alt="IP2Location"><br>
-						<img src="' . plugins_url('/assets/img/get-started.png', __FILE__) . '" width="160" height="125" align="center" style="margin-top:5px;" alt="IP2Location Country Blocker">
+						<img src="' . esc_url(plugins_url('/assets/img/logo.png', __FILE__)) . '" width="200" height="24" align="center" alt="IP2Location"><br>
+						<img src="' . esc_url(plugins_url('/assets/img/get-started.png', __FILE__)) . '" width="160" height="125" align="center" style="margin-top:5px;" alt="IP2Location Country Blocker">
 					</div>
 					<p style="margin-top:0;">
-						' . sprintf(__('%1$sIP2Location Country Blocker%2$s is a plugin designed to restrict visitors or traffic based on their geolocation determined by their IP address', 'ip2location-country-blocker'), '<strong>', '</strong>') . '
+						' . sprintf(/* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ esc_html__('%1$sIP2Location Country Blocker%2$s is a plugin designed to restrict visitors or traffic based on their geolocation determined by their IP address', 'ip2location-country-blocker'), '<strong>', '</strong>') . '
 					</p>
 					<p>
-						' . __('Please follow these steps to complete the setup.', 'ip2location-country-blocker') . '
+						' . esc_html__('Please follow these steps to complete the setup.', 'ip2location-country-blocker') . '
 					</p>';
 
 			if (!extension_loaded('bcmath')) {
 				echo '
-					<span class="dashicons dashicons-warning"></span> ' . sprintf(__('IP2Location requires %1$s PHP extension enabled. Please enable this extension in your %2$s.', 'ip2location-country-blocker'), '<strong>bcmath</strong>', '<strong>php.ini</strong>') . '
+					<span class="dashicons dashicons-warning"></span> ' . sprintf(/* translators: %1$s: HTML tag, %2$s: HTML tag. */ esc_html__('IP2Location requires %1$s PHP extension enabled. Please enable this extension in your %2$s.', 'ip2location-country-blocker'), '<strong>bcmath</strong>', '<strong>php.ini</strong>') . '
 					<p style="text-align:center;margin-top:25px">
-						<button class="button button-primary" style="padding:3px 18px;" disabled>' . __('Get Started', 'ip2location-country-blocker') . '</button>
+						<button class="button button-primary" style="padding:3px 18px;" disabled>' . esc_html__('Get Started', 'ip2location-country-blocker') . '</button>
 					</p>';
 			} else {
 				echo '
 					<p style="text-align:center;margin-top:25px">
-						<button class="button button-primary" id="btn-get-started" style="padding:3px 18px;">' . __('Get Started', 'ip2location-country-blocker') . '</button>
+						<button class="button button-primary" id="btn-get-started" style="padding:3px 18px;">' . esc_html__('Get Started', 'ip2location-country-blocker') . '</button>
 					</p>';
 			}
 
@@ -1948,31 +2037,31 @@ class IP2LocationCountryBlocker
 				<div class="ip2location-modal-content">
 					<div class="ip2location-sel-form">
 						<div class="ip2location-sel-con">
-							<h1 style="line-height:1.2;font-size:23px;text-align:center;margin-bottom:25px;">' . __('Choose Query Method', 'ip2location-country-blocker') . '</h1>
+							<h1 style="line-height:1.2;font-size:23px;text-align:center;margin-bottom:25px;">' . esc_html__('Choose Query Method', 'ip2location-country-blocker') . '</h1>
 							<div class="ip2location-sel-img-div">
 								<input width="100" type="radio" name="ipl-sel" id="db" value="db" checked>
 								<label for="db">
 									<span class="ip2location-sel-img">
-										<img src="' . plugins_url('/assets/img/db.png', __FILE__) . '" width="90" height="90" align="center" alt="IP2Location BIN Database">
+										<img src="' . esc_url(plugins_url('/assets/img/db.png', __FILE__)) . '" width="90" height="90" align="center" alt="IP2Location BIN Database">
 									</span>
 								</label>
-								<h4 style="margin-bottom:0;">' . __('IP2Location BIN Database (Local Query)', 'ip2location-country-blocker') . '</h4>
-								<p style="margin-top:8px;">' . __('Free geolocation database download', 'ip2location-country-blocker') . '</p>
+								<h4 style="margin-bottom:0;">' . esc_html__('IP2Location BIN Database (Local Query)', 'ip2location-country-blocker') . '</h4>
+								<p style="margin-top:8px;">' . esc_html__('Free geolocation database download', 'ip2location-country-blocker') . '</p>
 							</div>
 							<div class="ip2location-sel-img-div">
 								<input type="radio" name="ipl-sel" id="api" value="api" >
 								<label for="api">
 									<span class="ip2location-sel-img">
-										<img src="' . plugins_url('/assets/img/api.png', __FILE__) . '" width="90" height="90" align="center" alt="IP2Location.io IP Geolocation API">
+										<img src="' . esc_url(plugins_url('/assets/img/api.png', __FILE__)) . '" width="90" height="90" align="center" alt="IP2Location.io IP Geolocation API">
 									</span>
 								</label>
-								<h4 style="margin-bottom:0;">' . __('IP2Location.io IP Geolocation API (Remote Query)', 'ip2location-country-blocker') . '</h4>
-								<p style="margin-top:8px;">' . __('Free 30K IP geolocation queries per month', 'ip2location-country-blocker') . '</p>
+								<h4 style="margin-bottom:0;">' . esc_html__('IP2Location.io IP Geolocation API (Remote Query)', 'ip2location-country-blocker') . '</h4>
+								<p style="margin-top:8px;">' . esc_html__('Free 30K IP geolocation queries per month', 'ip2location-country-blocker') . '</p>
 							</div>
 						</div>
 					</div>
 					<p style="text-align:right;margin-top:15px">
-						<button id="btn-to-step-1" class="button button-primary" style="padding:3px 18px;">' . __('Next', 'ip2location-country-blocker') . ' &raquo;</button>
+						<button id="btn-to-step-1" class="button button-primary" style="padding:3px 18px;">' . esc_html__('Next', 'ip2location-country-blocker') . ' &raquo;</button>
 					</p>
 				</div>
 			</div>
@@ -1981,20 +2070,20 @@ class IP2LocationCountryBlocker
 			<div id="modal-db-step-1" class="ip2location-modal">
 				<div class="ip2location-modal-content">
 					<div align="center">
-						<h1 style="line-height:1.2;font-size:23px;margin-bottom:25px;">' . __('Set Up IP2Location LITE BIN Database', 'ip2location-country-blocker') . '</h1>
+						<h1 style="line-height:1.2;font-size:23px;margin-bottom:25px;">' . esc_html__('Set Up IP2Location LITE BIN Database', 'ip2location-country-blocker') . '</h1>
 						<table class="setup ip2location-steps" width="200">
 							<tr>
 								<td align="center">
-									<img src="' . plugins_url('/assets/img/step-1-selected.png', __FILE__) . '" width="36" height="36" align="center" alt="Wizard Step 1"><br>
-									' . __('Step 1', 'ip2location-country-blocker') . '
+									<img src="' . esc_url(plugins_url('/assets/img/step-1-selected.png', __FILE__)) . '" width="36" height="36" align="center" alt="Wizard Step 1"><br>
+									' . esc_html__('Step 1', 'ip2location-country-blocker') . '
 								</td>
 								<td align="center">
-									<img src="' . plugins_url('/assets/img/step-2.png', __FILE__) . '" width="36" height="36" align="center" alt="Wizard Step 2"><br>
-									' . __('Step 2', 'ip2location-country-blocker') . '
+									<img src="' . esc_url(plugins_url('/assets/img/step-2.png', __FILE__)) . '" width="36" height="36" align="center" alt="Wizard Step 2"><br>
+									' . esc_html__('Step 2', 'ip2location-country-blocker') . '
 								</td>
 								<td align="center">
-									<img src="' . plugins_url('/assets/img/step-3.png', __FILE__) . '" width="36" height="36" align="center" alt="Wizard Step 3"><br>
-									' . __('Step 3', 'ip2location-country-blocker') . '
+									<img src="' . esc_url(plugins_url('/assets/img/step-3.png', __FILE__)) . '" width="36" height="36" align="center" alt="Wizard Step 3"><br>
+									' . esc_html__('Step 3', 'ip2location-country-blocker') . '
 								</td>
 							</tr>
 						</table>
@@ -2002,17 +2091,17 @@ class IP2LocationCountryBlocker
 					</div>
 					<form>
 						<p>
-							<label>' . __('Enter IP2Location LITE download token', 'ip2location-country-blocker') . '</label>
+							<label>' . esc_html__('Enter IP2Location LITE download token', 'ip2location-country-blocker') . '</label>
 							<input type="text" id="setup_token" class="regular-text code" maxlength="64" style="width:100%; margin-top: 10px; margin-bottom: 4px;">
 						</p>
 						<p class="description">
-							' . sprintf(__('Don\'t have an account yet? Sign up a %1$s free IP geolocation account%2$s to obtain your download token.', 'ip2location-country-blocker'), '<a href="https://lite.ip2location.com/sign-up#wordpress-wzdicb" target="_blank">', '</a>') . '
+							' . sprintf(/* translators: %1$s: opening link tag, %2$s: closing link tag. */ esc_html__('Don\'t have an account yet? Sign up a %1$s free IP geolocation account%2$s to obtain your download token.', 'ip2location-country-blocker'), '<a href="https://lite.ip2location.com/sign-up#wordpress-wzdicb" target="_blank">', '</a>') . '
 						</p>
 						<p id="token_status" style="margin-top:20px;margin-bottom:20px;">&nbsp;</p>
 					</form>
 					<p style="text-align:right;margin-top:15px">
-						<button id="btn-to-db-step-0" class="button button-secondary" style="padding:3px 18px;margin-right:8px;" >&laquo; ' . __('Previous', 'ip2location-country-blocker') . '</button>
-						<button id="btn-to-db-step-2" class="button button-primary" style="padding:3px 18px;" disabled>' . __('Next', 'ip2location-country-blocker') . ' &raquo;</button>
+						<button id="btn-to-db-step-0" class="button button-secondary" style="padding:3px 18px;margin-right:8px;" >&laquo; ' . esc_html__('Previous', 'ip2location-country-blocker') . '</button>
+						<button id="btn-to-db-step-2" class="button button-primary" style="padding:3px 18px;" disabled>' . esc_html__('Next', 'ip2location-country-blocker') . ' &raquo;</button>
 					</p>
 				</div>
 			</div>
@@ -2020,20 +2109,20 @@ class IP2LocationCountryBlocker
 			<div id="modal-db-step-2" class="ip2location-modal">
 				<div class="ip2location-modal-content">
 					<div align="center">
-						<h1 style="line-height:1.2;font-size:23px;margin-bottom:25px;">' . __('Download IP2Location BIN Database', 'ip2location-country-blocker') . '</h1>
+						<h1 style="line-height:1.2;font-size:23px;margin-bottom:25px;">' . esc_html__('Download IP2Location BIN Database', 'ip2location-country-blocker') . '</h1>
 						<table class="setup ip2location-steps" width="200">
 							<tr>
 								<td align="center">
-									<img src="' . plugins_url('/assets/img/step-1-selected.png', __FILE__) . '" width="36" height="36" align="center" alt="Wizard Step 1"><br>
-									' . __('Step 1', 'ip2location-country-blocker') . '
+									<img src="' . esc_url(plugins_url('/assets/img/step-1-selected.png', __FILE__)) . '" width="36" height="36" align="center" alt="Wizard Step 1"><br>
+									' . esc_html__('Step 1', 'ip2location-country-blocker') . '
 								</td>
 								<td align="center">
-									<img src="' . plugins_url('/assets/img/step-2-selected.png', __FILE__) . '" width="36" height="36" align="center" alt="Wizard Step 2"><br>
-									' . __('Step 2', 'ip2location-country-blocker') . '
+									<img src="' . esc_url(plugins_url('/assets/img/step-2-selected.png', __FILE__)) . '" width="36" height="36" align="center" alt="Wizard Step 2"><br>
+									' . esc_html__('Step 2', 'ip2location-country-blocker') . '
 								</td>
 								<td align="center">
-									<img src="' . plugins_url('/assets/img/step-3.png', __FILE__) . '" width="36" height="36" align="center" alt="Wizard Step 3"><br>
-									' . __('Step 3', 'ip2location-country-blocker') . '
+									<img src="' . esc_url(plugins_url('/assets/img/step-3.png', __FILE__)) . '" width="36" height="36" align="center" alt="Wizard Step 3"><br>
+									' . esc_html__('Step 3', 'ip2location-country-blocker') . '
 								</td>
 							</tr>
 						</table>
@@ -2044,8 +2133,8 @@ class IP2LocationCountryBlocker
 						<p id="ip2location_download_status"></p>
 					</form>
 					<p style="text-align:right;margin-top:30px">
-						<button id="btn-to-db-step-1" class="button button-secondary" style="padding:3px 18px;margin-right:8px;" disabled>&laquo; ' . __('Previous', 'ip2location-country-blocker') . '</button>
-						<button id="btn-to-db-step-3" class="button button-primary" style="padding:3px 18px;" disabled>' . __('Next', 'ip2location-country-blocker') . ' &raquo;</button>
+						<button id="btn-to-db-step-1" class="button button-secondary" style="padding:3px 18px;margin-right:8px;" disabled>&laquo; ' . esc_html__('Previous', 'ip2location-country-blocker') . '</button>
+						<button id="btn-to-db-step-3" class="button button-primary" style="padding:3px 18px;" disabled>' . esc_html__('Next', 'ip2location-country-blocker') . ' &raquo;</button>
 					</p>
 				</div>
 			</div>
@@ -2053,20 +2142,20 @@ class IP2LocationCountryBlocker
 			<div id="modal-db-step-3" class="ip2location-modal">
 				<div class="ip2location-modal-content">
 					<div align="center">
-						<h1 style="line-height:1.2;font-size:23px;margin-bottom:25px;">' . __('Configure The Rules', 'ip2location-country-blocker') . '</h1>
+						<h1 style="line-height:1.2;font-size:23px;margin-bottom:25px;">' . esc_html__('Configure The Rules', 'ip2location-country-blocker') . '</h1>
 						<table class="setup ip2location-steps" width="200">
 							<tr>
 								<td align="center">
-									<img src="' . plugins_url('/assets/img/step-1-selected.png', __FILE__) . '" width="36" height="36" align="center" alt="Wizard Step 1"><br>
-									' . __('Step 1', 'ip2location-country-blocker') . '
+									<img src="' . esc_url(plugins_url('/assets/img/step-1-selected.png', __FILE__)) . '" width="36" height="36" align="center" alt="Wizard Step 1"><br>
+									' . esc_html__('Step 1', 'ip2location-country-blocker') . '
 								</td>
 								<td align="center">
-									<img src="' . plugins_url('/assets/img/step-2-selected.png', __FILE__) . '" width="36" height="36" align="center" alt="Wizard Step 2"><br>
-									' . __('Step 2', 'ip2location-country-blocker') . '
+									<img src="' . esc_url(plugins_url('/assets/img/step-2-selected.png', __FILE__)) . '" width="36" height="36" align="center" alt="Wizard Step 2"><br>
+									' . esc_html__('Step 2', 'ip2location-country-blocker') . '
 								</td>
 								<td align="center">
-									<img src="' . plugins_url('/assets/img/step-3-selected.png', __FILE__) . '" width="36" height="36" align="center" alt="Wizard Step 3"><br>
-									' . __('Step 3', 'ip2location-country-blocker') . '
+									<img src="' . esc_url(plugins_url('/assets/img/step-3-selected.png', __FILE__)) . '" width="36" height="36" align="center" alt="Wizard Step 3"><br>
+									' . esc_html__('Step 3', 'ip2location-country-blocker') . '
 								</td>
 							</tr>
 						</table>
@@ -2075,11 +2164,11 @@ class IP2LocationCountryBlocker
 
 					<form style="height:75px;">
 						<p>
-							' . __('Please click the “Finish” button to start configuring your rules.', 'ip2location-country-blocker') . '
+							' . esc_html__('Please click the “Finish” button to start configuring your rules.', 'ip2location-country-blocker') . '
 						</p>
 					</form>
 					<p style="text-align:right;margin-top:30px">
-						<button class="button button-primary" style="padding:3px 18px;" onclick="window.location.href=\'' . admin_url('admin.php?page=ip2location-country-blocker') . '\';">' . __('Finish', 'ip2location-country-blocker') . '</button>
+						<button class="button button-primary" style="padding:3px 18px;" onclick="window.location.href=\'' . esc_url(admin_url('admin.php?page=ip2location-country-blocker')) . '\';">' . esc_html__('Finish', 'ip2location-country-blocker') . '</button>
 					</p>
 				</div>
 			</div>
@@ -2088,16 +2177,16 @@ class IP2LocationCountryBlocker
 			<div id="modal-api-step-1" class="ip2location-modal">
 				<div class="ip2location-modal-content">
 					<div align="center">
-						<h1 style="line-height:1.2;font-size:23px;margin-bottom:25px;">' . __('Set Up IP2Location.io IP Geolocation Service', 'ip2location-country-blocker') . '</h1>
+						<h1 style="line-height:1.2;font-size:23px;margin-bottom:25px;">' . esc_html__('Set Up IP2Location.io IP Geolocation Service', 'ip2location-country-blocker') . '</h1>
 						<table class="setup ip2location-steps" width="200">
 							<tr>
 								<td align="center">
-									<img src="' . plugins_url('/assets/img/step-1-selected.png', __FILE__) . '" width="36" height="36" align="center" alt="Wizard Step 1"><br>
-									' . __('Step 1', 'ip2location-country-blocker') . '
+									<img src="' . esc_url(plugins_url('/assets/img/step-1-selected.png', __FILE__)) . '" width="36" height="36" align="center" alt="Wizard Step 1"><br>
+									' . esc_html__('Step 1', 'ip2location-country-blocker') . '
 								</td>
 								<td align="center">
-									<img src="' . plugins_url('/assets/img/step-3.png', __FILE__) . '" width="36" height="36" align="center" alt="Wizard Step 2"><br>
-									' . __('Step 2', 'ip2location-country-blocker') . '
+									<img src="' . esc_url(plugins_url('/assets/img/step-3.png', __FILE__)) . '" width="36" height="36" align="center" alt="Wizard Step 2"><br>
+									' . esc_html__('Step 2', 'ip2location-country-blocker') . '
 								</td>
 							</tr>
 						</table>
@@ -2105,17 +2194,17 @@ class IP2LocationCountryBlocker
 					</div>
 					<form>
 						<p>
-							<label>' . __('Enter IP2Location.io IP Geolocation API key', 'ip2location-country-blocker') . '</label>
+							<label>' . esc_html__('Enter IP2Location.io IP Geolocation API key', 'ip2location-country-blocker') . '</label>
 							<input type="text" id="setup_api_key" class="regular-text code" maxlength="32" style="width:100%;margin-top: 10px; margin-bottom: 4px;">
 						</p>
 						<p class="description">
-							' . sprintf(__('Don\'t have an account yet? Sign up a %1$s free IP geolocation plan%2$s to obtain your API key.', 'ip2location-country-blocker'), '<a href="https://www.ip2location.io/sign-up?ref=wp_icb" target="_blank">', '</a>') . '
+							' . sprintf(/* translators: %1$s: opening link tag, %2$s: closing link tag. */ esc_html__('Don\'t have an account yet? Sign up a %1$s free IP geolocation plan%2$s to obtain your API key.', 'ip2location-country-blocker'), '<a href="https://www.ip2location.io/sign-up?ref=wp_icb" target="_blank">', '</a>') . '
 						</p>
 						<p id="api_status">&nbsp;</p>
 					</form>
 					<p style="text-align:right;margin-top:30px">
-						<button id="btn-to-api-step-0" class="button button-secondary" style="padding:3px 18px;margin-right:8px;">&laquo; ' . __('Previous', 'ip2location-country-blocker') . '</button>
-						<button id="btn-to-api-step-2" class="button button-primary" style="padding:3px 18px;" >' . __('Next', 'ip2location-country-blocker') . ' &raquo;</button>
+						<button id="btn-to-api-step-0" class="button button-secondary" style="padding:3px 18px;margin-right:8px;">&laquo; ' . esc_html__('Previous', 'ip2location-country-blocker') . '</button>
+						<button id="btn-to-api-step-2" class="button button-primary" style="padding:3px 18px;" >' . esc_html__('Next', 'ip2location-country-blocker') . ' &raquo;</button>
 					</p>
 				</div>
 			</div>
@@ -2123,16 +2212,16 @@ class IP2LocationCountryBlocker
 			<div id="modal-api-step-2" class="ip2location-modal">
 				<div class="ip2location-modal-content">
 					<div align="center">
-						<h1 style="line-height:1.2;font-size:23px;margin-bottom:25px;">' . __('Configure The Rules', 'ip2location-country-blocker') . '</h1>
+						<h1 style="line-height:1.2;font-size:23px;margin-bottom:25px;">' . esc_html__('Configure The Rules', 'ip2location-country-blocker') . '</h1>
 						<table class="setup ip2location-steps" width="200">
 							<tr>
 								<td align="center">
-									<img src="' . plugins_url('/assets/img/step-1-selected.png', __FILE__) . '" width="36" height="36" align="center" alt="Wizard Step 1"><br>
-									' . __('Step 1', 'ip2location-country-blocker') . '
+									<img src="' . esc_url(plugins_url('/assets/img/step-1-selected.png', __FILE__)) . '" width="36" height="36" align="center" alt="Wizard Step 1"><br>
+									' . esc_html__('Step 1', 'ip2location-country-blocker') . '
 								</td>
 								<td align="center">
-									<img src="' . plugins_url('/assets/img/step-3-selected.png', __FILE__) . '" width="36" height="36" align="center" alt="Wizard Step 2"><br>
-									' . __('Step 2', 'ip2location-country-blocker') . '
+									<img src="' . esc_url(plugins_url('/assets/img/step-3-selected.png', __FILE__)) . '" width="36" height="36" align="center" alt="Wizard Step 2"><br>
+									' . esc_html__('Step 2', 'ip2location-country-blocker') . '
 								</td>
 							</tr>
 						</table>
@@ -2141,20 +2230,143 @@ class IP2LocationCountryBlocker
 
 					<form style="height:75px;">
 						<p>
-							' . __('Please click the “Finish” button to start configuring your rules.', 'ip2location-country-blocker') . '
+							' . esc_html__('Please click the “Finish” button to start configuring your rules.', 'ip2location-country-blocker') . '
 						</p>
 					</form>
 					<p style="text-align:right;margin-top:30px">
-						<button class="button button-primary" style="padding:3px 18px;" onclick="window.location.href=\'' . admin_url('admin.php?page=ip2location-country-blocker') . '\';">' . __('Finish', 'ip2location-country-blocker') . '</button>
+						<button class="button button-primary" style="padding:3px 18px;" onclick="window.location.href=\'' . esc_url(admin_url('admin.php?page=ip2location-country-blocker')) . '\';">' . esc_html__('Finish', 'ip2location-country-blocker') . '</button>
 					</p>
 				</div>
 			</div>
 			';
 		}
 
-		echo '<input type="hidden" id="validate_token_nonce" value="' . wp_create_nonce('validate-token') . '">';
-		echo '<input type="hidden" id="validate_api_key_nonce" value="' . wp_create_nonce('validate-api-key') . '">';
-		echo '<input type="hidden" id="update_nonce" value="' . wp_create_nonce('update-database') . '">';
+		echo '<input type="hidden" id="validate_token_nonce" value="' . esc_attr(wp_create_nonce('validate-token')) . '">';
+		echo '<input type="hidden" id="validate_api_key_nonce" value="' . esc_attr(wp_create_nonce('validate-api-key')) . '">';
+		echo '<input type="hidden" id="update_nonce" value="' . esc_attr(wp_create_nonce('update-database')) . '">';
+		echo '</div>';
+	}
+
+	public function woocommerce_page()
+	{
+		if (!$this->is_setup_completed()) {
+			return $this->settings_page();
+		}
+
+		$woocommerce_status = '';
+
+		$woocommerce_enabled = $this->is_checked('woocommerce_enabled', $this->get_option('woocommerce_enabled'));
+		$woocommerce_banlist = $this->post('woocommerce_ban_list', $this->post('submit') ? [] : $this->get_option('woocommerce_banlist'));
+		$woocommerce_banlist = is_array($woocommerce_banlist) ? $woocommerce_banlist : [];
+		$woocommerce_mode = $this->post('woocommerce_mode', $this->get_option('woocommerce_mode'));
+		$woocommerce_message = $this->post_textarea('woocommerce_message', $this->get_option('woocommerce_message'));
+
+		if (!in_array($woocommerce_mode, ['checkout', 'purchase', 'both'], true)) {
+			$woocommerce_mode = 'checkout';
+		}
+
+		if ($this->post('submit')) {
+			check_admin_referer('save_woocommerce');
+
+			// Disabled fields are not posted, so keep the saved values.
+			if (!$woocommerce_enabled) {
+				$woocommerce_banlist = $this->get_option('woocommerce_banlist');
+				$woocommerce_message = $this->get_option('woocommerce_message');
+			}
+
+			$this->update_option('woocommerce_enabled', $woocommerce_enabled);
+			$this->update_option('woocommerce_banlist', $woocommerce_banlist);
+			$this->update_option('woocommerce_mode', $woocommerce_mode);
+			$this->update_option('woocommerce_message', $woocommerce_message);
+
+			$woocommerce_status = '
+			<div class="updated">
+				<p>' . __('Changes saved.', 'ip2location-country-blocker') . '</p>
+			</div>';
+		}
+
+		if (!class_exists('WooCommerce')) {
+			$woocommerce_status .= '
+			<div class="notice notice-warning inline">
+				<p>' . __('WooCommerce is not active. These restrictions have no effect until it is.', 'ip2location-country-blocker') . '</p>
+			</div>';
+		}
+
+		echo '
+		<div class="wrap">
+			<h1>' . esc_html__('WooCommerce', 'ip2location-country-blocker') . '</h1>
+
+			' . wp_kses_post($woocommerce_status) . '
+
+			<form method="post" novalidate="novalidate">';
+
+		wp_nonce_field('save_woocommerce');
+
+		echo '
+				<table class="form-table">
+					<tr>
+						<th scope="row">
+							<label for="woocommerce_enabled">' . esc_html__('Enable restrictions', 'ip2location-country-blocker') . '</label>
+						</th>
+						<td>
+							<label for="woocommerce_enabled">
+								<input type="checkbox" name="woocommerce_enabled" id="woocommerce_enabled" value="1"' . (($woocommerce_enabled) ? ' checked' : '') . ' />
+								' . esc_html__('Restrict WooCommerce for the countries listed below.', 'ip2location-country-blocker') . '
+							</label>
+							<p class="description">
+								' . esc_html__('Administrators and bypassed roles are never restricted.', 'ip2location-country-blocker') . '
+							</p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label>' . esc_html__('Apply to', 'ip2location-country-blocker') . '</label>
+						</th>
+						<td>
+							<fieldset>
+								<legend class="screen-reader-text"><span>' . esc_html__('Restriction', 'ip2location-country-blocker') . '</span></legend>
+								<label><input type="radio" name="woocommerce_mode" value="checkout" class="input-field"' . (($woocommerce_mode === 'checkout') ? ' checked' : '') . ' /> ' . esc_html__('Block checkout', 'ip2location-country-blocker') . '</label><br />
+								<label><input type="radio" name="woocommerce_mode" value="purchase" class="input-field"' . (($woocommerce_mode === 'purchase') ? ' checked' : '') . ' /> ' . esc_html__('Hide prices and disable purchasing', 'ip2location-country-blocker') . '</label><br />
+								<label><input type="radio" name="woocommerce_mode" value="both" class="input-field"' . (($woocommerce_mode === 'both') ? ' checked' : '') . ' /> ' . esc_html__('Both', 'ip2location-country-blocker') . '</label>
+							</fieldset>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label for="woocommerce_ban_list">' . esc_html__('Countries', 'ip2location-country-blocker') . '</label>
+						</th>
+						<td>
+							<select name="woocommerce_ban_list[]" id="woocommerce_ban_list" data-placeholder="' . esc_attr__('Choose Country...', 'ip2location-country-blocker') . '" multiple="true" class="chosen input-field">';
+
+		foreach ($this->countries as $country_code => $country_name) {
+			echo '
+								<option value="' . esc_attr($country_code) . '"' . (($this->is_in_array($country_code, $woocommerce_banlist)) ? ' selected' : '') . '> ' . esc_html($country_name) . '</option>';
+		}
+
+		echo '
+							</select>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row">
+							<label for="woocommerce_message">' . esc_html__('Message', 'ip2location-country-blocker') . '</label>
+						</th>
+						<td>
+							<textarea name="woocommerce_message" id="woocommerce_message" rows="2" cols="60" class="large-text input-field">' . esc_textarea($woocommerce_message) . '</textarea>
+							<p class="description">
+								' . esc_html__('Shown to restricted visitors. Leave empty to use the default message.', 'ip2location-country-blocker') . '
+							</p>
+						</td>
+					</tr>
+				</table>
+
+				<p class="submit">
+					<input type="submit" name="submit" class="button button-primary" value="' . esc_attr__('Save Changes', 'ip2location-country-blocker') . '" />
+				</p>
+			</form>
+
+			<div class="clear"></div>
+		</div>';
 	}
 
 	public function admin_page()
@@ -2182,14 +2394,14 @@ class IP2LocationCountryBlocker
 			return;
 		}
 
-		// Disable redirection on administrator session.
-		if (current_user_can('administrator')) {
+		// Skip blocking for administrators and any bypassed role.
+		if ($this->current_user_bypasses_blocking()) {
 			return;
 		}
 
 		// Ignore internal XHR & cron.
-		if (isset($_SERVER['SCRIPT_NAME'])) {
-			if (in_array(basename($_SERVER['SCRIPT_NAME']), ['admin-ajax.php', 'ajax.php', 'cron.php', 'wp-cron.php'])) {
+		if (null !== $this->server('SCRIPT_NAME', null)) {
+			if (in_array(basename($this->server('SCRIPT_NAME')), ['admin-ajax.php', 'ajax.php', 'cron.php', 'wp-cron.php'])) {
 				return;
 			}
 		}
@@ -2312,14 +2524,14 @@ class IP2LocationCountryBlocker
 			if ($this->get_option('backend_auto_block_threshold')) {
 				$this->wpdb_query('INSERT INTO ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_backend_rate_limit_log (ip_address, date_created) VALUES (%s, %s)', [
 					$this->ip(),
-					date('Y-m-d H:i:s'),
+					gmdate('Y-m-d H:i:s'),
 				]);
 
 				$total = $this->wpdb_get_value(
 					'SELECT COUNT(*) FROM ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_backend_rate_limit_log WHERE ip_address = %s AND date_created >= %s',
 					[
 						$this->ip(),
-						date('Y-m-d H:i:s', strtotime('-24 hour'))
+						gmdate('Y-m-d H:i:s', strtotime('-24 hour'))
 					]
 				);
 
@@ -2330,7 +2542,7 @@ class IP2LocationCountryBlocker
 
 				$this->wpdb_query('DELETE FROM ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_backend_rate_limit_log WHERE ip_address = %s AND date_created < %s', [
 					$this->ip(),
-					date('Y-m-d H:i:s', strtotime('-24 hour'))
+					gmdate('Y-m-d H:i:s', strtotime('-24 hour'))
 				]);
 			}
 		}
@@ -2425,14 +2637,14 @@ class IP2LocationCountryBlocker
 			if ($this->get_option('frontend_auto_block_threshold')) {
 				$this->wpdb_query('INSERT INTO ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_frontend_rate_limit_log (ip_address, date_created) VALUES (%s, %s)', [
 					$this->ip(),
-					date('Y-m-d H:i:s')
+					gmdate('Y-m-d H:i:s')
 				]);
 
 				$total = $this->wpdb_get_value(
 					'SELECT COUNT(*) FROM ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_frontend_rate_limit_log WHERE ip_address = %s AND date_created >= %s',
 					[
 						$this->ip(),
-						date('Y-m-d H:i:s', strtotime('-24 hour'))
+						gmdate('Y-m-d H:i:s', strtotime('-24 hour'))
 					]
 				);
 
@@ -2443,7 +2655,7 @@ class IP2LocationCountryBlocker
 
 				$this->wpdb_query('DELETE FROM ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_frontend_rate_limit_log WHERE ip_address = %s AND date_created < %s', [
 					$this->ip(),
-					date('Y-m-d H:i:s', strtotime('-24 hour'))
+					gmdate('Y-m-d H:i:s', strtotime('-24 hour'))
 				]);
 			}
 		}
@@ -2454,6 +2666,7 @@ class IP2LocationCountryBlocker
 		add_menu_page(__('Country Blocker', 'ip2location-country-blocker'), __('Country Blocker', 'ip2location-country-blocker'), 'manage_options', 'ip2location-country-blocker', [$this, 'frontend_page'], 'dashicons-admin-ip2location', 30);
 		add_submenu_page('ip2location-country-blocker', __('Frontend', 'ip2location-country-blocker'), __('Frontend', 'ip2location-country-blocker'), 'manage_options', 'ip2location-country-blocker', [$this, 'frontend_page']);
 		add_submenu_page('ip2location-country-blocker', __('Backend', 'ip2location-country-blocker'), __('Backend', 'ip2location-country-blocker'), 'manage_options', 'ip2location-country-blocker-backend', [$this, 'backend_page']);
+		add_submenu_page('ip2location-country-blocker', __('WooCommerce', 'ip2location-country-blocker'), __('WooCommerce', 'ip2location-country-blocker'), 'manage_options', 'ip2location-country-blocker-woocommerce', [$this, 'woocommerce_page']);
 		add_submenu_page('ip2location-country-blocker', __('Statistics', 'ip2location-country-blocker'), __('Statistics', 'ip2location-country-blocker'), 'manage_options', 'ip2location-country-blocker-statistics', [$this, 'statistics_page']);
 		add_submenu_page('ip2location-country-blocker', __('IP Lookup', 'ip2location-country-blocker'), __('IP Lookup', 'ip2location-country-blocker'), 'manage_options', 'ip2location-country-blocker-ip-lookup', [$this, 'ip_lookup_page']);
 		add_submenu_page('ip2location-country-blocker', __('Settings', 'ip2location-country-blocker'), __('Settings', 'ip2location-country-blocker'), 'manage_options', 'ip2location-country-blocker-settings', [$this, 'settings_page']);
@@ -2476,9 +2689,12 @@ class IP2LocationCountryBlocker
 		add_option('ip2location_country_blocker_backend_redirect_url', '');
 		add_option('ip2location_country_blocker_backend_skip_bots', '1');
 		add_option('ip2location_country_blocker_bypass_code', '');
+		add_option('ip2location_country_blocker_bypass_logged_in', '0');
+		add_option('ip2location_country_blocker_bypass_roles', []);
 		add_option('ip2location_country_blocker_custom_error_html', '');
 		add_option('ip2location_country_blocker_database', '');
 		add_option('ip2location_country_blocker_debug_log_enabled', '0');
+		add_option('ip2location_country_blocker_debug_ip', '');
 		add_option('ip2location_country_blocker_trust_x_forwarded_for', '0');
 		add_option('ip2location_country_blocker_download_ipv4_only', '0');
 		add_option('ip2location_country_blocker_email_notification', 'none');
@@ -2506,6 +2722,10 @@ class IP2LocationCountryBlocker
 		add_option('ip2location_country_blocker_session_message', '');
 		add_option('ip2location_country_blocker_show_logo', '1');
 		add_option('ip2location_country_blocker_token', '');
+		add_option('ip2location_country_blocker_woocommerce_banlist', []);
+		add_option('ip2location_country_blocker_woocommerce_enabled', '0');
+		add_option('ip2location_country_blocker_woocommerce_message', '');
+		add_option('ip2location_country_blocker_woocommerce_mode', 'checkout');
 
 		$this->create_table();
 
@@ -2515,6 +2735,7 @@ class IP2LocationCountryBlocker
 
 	public function update_ip2location_database()
 	{
+		// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- long database download.
 		@set_time_limit(300);
 
 		check_admin_referer('update-database', '__nonce');
@@ -2602,17 +2823,15 @@ class IP2LocationCountryBlocker
 			}
 
 			// Save downloaded package.
-			$fp = fopen($zip_file, 'w');
+			$saved = file_put_contents($zip_file, $response['body']);
 
-			if (!$fp) {
+			if (false === $saved) {
 				exit(json_encode([
 					'status'  => 'ERROR',
 					'message' => __('No permission to write into file system.', 'ip2location-country-blocker'),
 				]));
 			}
 
-			fwrite($fp, $response['body']);
-			fclose($fp);
 
 			if (filesize($zip_file) < 51200) {
 				$message = file_get_contents($zip_file);
@@ -2628,7 +2847,7 @@ class IP2LocationCountryBlocker
 			$result = unzip_file($zip_file, $working_dir);
 
 			// Once extracted, delete the package.
-			unlink($zip_file);
+			wp_delete_file($zip_file);
 
 			if (is_wp_error($result)) {
 				$wp_filesystem->delete($working_dir, true);
@@ -2680,6 +2899,7 @@ class IP2LocationCountryBlocker
 
 	public function update_ip2proxy_database()
 	{
+		// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- long database download.
 		@set_time_limit(300);
 
 		check_admin_referer('update-database', '__nonce');
@@ -2764,7 +2984,7 @@ class IP2LocationCountryBlocker
 
 				exit(json_encode([
 					'status'  => 'ERROR',
-					'message' => __(file_get_contents($zip_file), 'ip2location-country-blocker'),
+					'message' => file_get_contents($zip_file),
 				]));
 			}
 
@@ -2977,13 +3197,15 @@ class IP2LocationCountryBlocker
 
 		check_admin_referer('restore', '__nonce');
 
-		if (!isset($_FILES['restore_file']) || $_FILES['restore_file']['error'] !== UPLOAD_ERR_OK) {
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- PHP-provided upload metadata, not user input.
+		if (!isset($_FILES['restore_file']['error']) || UPLOAD_ERR_OK !== $_FILES['restore_file']['error']) {
 			exit(json_encode([
 				'status'  => 'ERROR',
 				'message' => __('File upload error.', 'ip2location-country-blocker')
 			]));
 		}
 
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- PHP-provided temp path.
 		$contents = file_get_contents($_FILES['restore_file']['tmp_name']);
 
 		// Reject oversized files (>2 MB).
@@ -3047,7 +3269,7 @@ class IP2LocationCountryBlocker
 		echo '
 		<div class="error">
 			<p>
-				' . sprintf(__('IP2Location Country Blocker requires the IP2Location BIN database to work. %1$sSetup your database%2$s now.', 'ip2location-country-blocker'), '<a href="' . get_admin_url() . 'admin.php?page=ip2location-country-blocker-settings">', '</a>') . '
+				' . sprintf(/* translators: %1$s: opening link tag, %2$s: closing link tag. */ esc_html__('IP2Location Country Blocker requires the IP2Location BIN database to work. %1$sSetup your database%2$s now.', 'ip2location-country-blocker'), '<a href="' . esc_url(get_admin_url()) . 'admin.php?page=ip2location-country-blocker-settings">', '</a>') . '
 			</p>
 		</div>';
 	}
@@ -3055,12 +3277,13 @@ class IP2LocationCountryBlocker
 	// Enqueue the script.
 	public function plugin_enqueues($hook)
 	{
+		$ver = get_file_data(__FILE__, ['Version' => 'Version'])['Version'] ?? '';
+
 		// Deactivation feedback modal on the Plugins screen
 		if ($hook == 'plugins.php') {
 			wp_enqueue_script('jquery-ui-dialog');
 			wp_enqueue_style('wp-jquery-ui-dialog');
-			wp_enqueue_style('iplcb-styles-css', untrailingslashit(plugins_url('/', __FILE__)) . '/assets/css/styles.css');
-			wp_enqueue_script('iplcb-feedback-js', plugins_url('/assets/js/feedback.js', __FILE__), ['jquery'], null, true);
+			wp_enqueue_style('iplcb-styles-css', untrailingslashit(plugins_url('/', __FILE__)) . '/assets/css/styles.css', [], $ver);			wp_enqueue_script('iplcb-feedback-js', plugins_url('/assets/js/feedback.js', __FILE__), ['jquery'], $ver, true);
 
 			return;
 		}
@@ -3073,6 +3296,7 @@ class IP2LocationCountryBlocker
 			'ip2location-country-blocker-backend'    => 'backend',
 			'ip2location-country-blocker-statistics' => 'statistics',
 			'ip2location-country-blocker-settings'   => 'settings',
+			'ip2location-country-blocker-woocommerce' => 'woocommerce',
 		];
 
 		if (!isset($pages[$page])) {
@@ -3082,47 +3306,58 @@ class IP2LocationCountryBlocker
 		$page = $pages[$page];
 
 		// Shared stylesheet, scoped to the plugin's own pages only.
-		wp_enqueue_style('iplcb-styles-css', untrailingslashit(plugins_url('/', __FILE__)) . '/assets/css/styles.css');
-
+		wp_enqueue_style('iplcb-styles-css', untrailingslashit(plugins_url('/', __FILE__)) . '/assets/css/styles.css', [], $ver);
 		// Until setup is complete, every plugin page renders the setup wizard.
 		if (!$this->is_setup_completed() && $page != 'settings') {
-			wp_enqueue_script('iplcb-jquery-upload-file-js', plugins_url('/assets/js/jquery.uploadfile.min.js', __FILE__), ['jquery', 'jquery-form'], null, true);
-			wp_enqueue_script('iplcb-settings-js', plugins_url('/assets/js/settings.js', __FILE__), ['jquery'], null, true);
+			wp_enqueue_script('iplcb-jquery-upload-file-js', plugins_url('/assets/js/jquery.uploadfile.min.js', __FILE__), ['jquery', 'jquery-form'], $ver, true);
+			wp_enqueue_script('iplcb-settings-js', plugins_url('/assets/js/settings.js', __FILE__), ['jquery'], $ver, true);
 		}
 
 		switch ($page) {
 			case 'frontend':
-				wp_enqueue_script('iplcb-frontend-js', plugins_url('/assets/js/frontend.js', __FILE__), ['jquery'], null, true);
-				wp_enqueue_script('iplcb-tagsinput-js', plugins_url('/assets/js/jquery.tagsinput.min.js', __FILE__), ['jquery'], null, true);
-				wp_enqueue_script('iplcb-chosen-js', plugins_url('/assets/js/chosen.jquery.min.js', __FILE__), ['jquery'], null, true);
+				wp_enqueue_script('iplcb-frontend-js', plugins_url('/assets/js/frontend.js', __FILE__), ['jquery'], $ver, true);
+				wp_enqueue_script('iplcb-tagsinput-js', plugins_url('/assets/js/jquery.tagsinput.min.js', __FILE__), ['jquery'], $ver, true);
+				wp_enqueue_script('iplcb-chosen-js', plugins_url('/assets/js/chosen.jquery.min.js', __FILE__), ['jquery'], $ver, true);
 
-				wp_enqueue_style('iplcb-customs-css', plugins_url('/assets/css/customs.css', __FILE__), [], null);
-				wp_enqueue_style('iplcb-tagsinput-css', plugins_url('/assets/css/jquery.tagsinput.min.css', __FILE__), [], null);
-				wp_enqueue_style('iplcb-chosen-css', plugins_url('/assets/css/chosen.min.css', __FILE__), [], null);
+				wp_enqueue_style('iplcb-tagsinput-css', plugins_url('/assets/css/jquery.tagsinput.min.css', __FILE__), [], $ver);
+				wp_enqueue_style('iplcb-chosen-css', plugins_url('/assets/css/chosen.min.css', __FILE__), [], $ver);
+				wp_enqueue_style('iplcb-customs-css', plugins_url('/assets/css/customs.css', __FILE__), [], $ver);
 
 				break;
 
 			case 'backend':
-				wp_enqueue_script('iplcb-backend-js', plugins_url('/assets/js/backend.js', __FILE__), ['jquery'], null, true);
-				wp_enqueue_script('iplcb-tagsinput-js', plugins_url('/assets/js/jquery.tagsinput.min.js', __FILE__), ['jquery'], null, true);
-				wp_enqueue_script('iplcb-chosen-js', plugins_url('/assets/js/chosen.jquery.min.js', __FILE__), ['jquery'], null, true);
+				wp_enqueue_script('iplcb-backend-js', plugins_url('/assets/js/backend.js', __FILE__), ['jquery'], $ver, true);
+				wp_enqueue_script('iplcb-tagsinput-js', plugins_url('/assets/js/jquery.tagsinput.min.js', __FILE__), ['jquery'], $ver, true);
+				wp_enqueue_script('iplcb-chosen-js', plugins_url('/assets/js/chosen.jquery.min.js', __FILE__), ['jquery'], $ver, true);
 
-				wp_enqueue_style('iplcb-tagsinput-css', plugins_url('/assets/css/jquery.tagsinput.min.css', __FILE__), [], null);
-				wp_enqueue_style('iplcb-chosen-css', plugins_url('/assets/css/chosen.min.css', __FILE__), [], null);
+				wp_enqueue_style('iplcb-tagsinput-css', plugins_url('/assets/css/jquery.tagsinput.min.css', __FILE__), [], $ver);
+				wp_enqueue_style('iplcb-chosen-css', plugins_url('/assets/css/chosen.min.css', __FILE__), [], $ver);
+				wp_enqueue_style('iplcb-customs-css', plugins_url('/assets/css/customs.css', __FILE__), [], $ver);
 
 				break;
 
 			case 'statistics':
-				wp_enqueue_script('iplcb-chart-js', plugins_url('/assets/js/chart-js.min.js', __FILE__), [], null, true);
-				wp_enqueue_script('iplcb-statistics-js', plugins_url('/assets/js/statistics.js', __FILE__), ['jquery'], null, true);
+				wp_enqueue_script('iplcb-chart-js', plugins_url('/assets/js/chart-js.min.js', __FILE__), [], $ver, true);
+				wp_enqueue_script('iplcb-statistics-js', plugins_url('/assets/js/statistics.js', __FILE__), ['jquery'], $ver, true);
+
+				break;
+
+			case 'woocommerce':
+				wp_enqueue_script('iplcb-chosen-js', plugins_url('/assets/js/chosen.jquery.min.js', __FILE__), ['jquery'], $ver, true);
+				wp_enqueue_script('iplcb-woocommerce-js', plugins_url('/assets/js/woocommerce.js', __FILE__), ['jquery', 'iplcb-chosen-js'], $ver, true);
+				wp_enqueue_style('iplcb-chosen-css', plugins_url('/assets/css/chosen.min.css', __FILE__), [], $ver);
+				wp_enqueue_style('iplcb-customs-css', plugins_url('/assets/css/customs.css', __FILE__), [], $ver);
 
 				break;
 
 			case 'settings':
 				wp_enqueue_script('jquery-form');
-				wp_enqueue_script('iplcb-jquery-upload-file-js', plugins_url('/assets/js/jquery.uploadfile.min.js', __FILE__), ['jquery', 'jquery-form'], null, true);
-				wp_enqueue_style('iplcb-jquery-upload-file-css', plugins_url('/assets/css/uploadfile.min.css', __FILE__), [], null);
-				wp_enqueue_script('iplcb-settings-js', plugins_url('/assets/js/settings.js', __FILE__), ['jquery', 'iplcb-jquery-upload-file-js'], null, true);
+				wp_enqueue_script('iplcb-jquery-upload-file-js', plugins_url('/assets/js/jquery.uploadfile.min.js', __FILE__), ['jquery', 'jquery-form'], $ver, true);
+				wp_enqueue_style('iplcb-jquery-upload-file-css', plugins_url('/assets/css/uploadfile.min.css', __FILE__), [], $ver);
+				wp_enqueue_script('iplcb-chosen-js', plugins_url('/assets/js/chosen.jquery.min.js', __FILE__), ['jquery'], $ver, true);
+				wp_enqueue_style('iplcb-chosen-css', plugins_url('/assets/css/chosen.min.css', __FILE__), [], $ver);
+				wp_enqueue_style('iplcb-customs-css', plugins_url('/assets/css/customs.css', __FILE__), [], $ver);
+				wp_enqueue_script('iplcb-settings-js', plugins_url('/assets/js/settings.js', __FILE__), ['jquery', 'iplcb-jquery-upload-file-js'], $ver, true);
 
 				break;
 		}
@@ -3141,7 +3376,7 @@ class IP2LocationCountryBlocker
 			return;
 		}
 
-		error_log(json_encode([
+		file_put_contents(IP2LOCATION_DIR . $this->debug_log, json_encode([
 			'time'       => gmdate('Y-m-d H:i:s'),
 			'client_ip'  => $this->ip(),
 			'country'    => $this->session['country'],
@@ -3152,7 +3387,7 @@ class IP2LocationCountryBlocker
 			'uri'        => $this->get_current_url(),
 			'message'    => $message,
 			'action'     => $action,
-		]) . "\n", 3, IP2LOCATION_DIR . $this->debug_log);
+		]) . "\n", FILE_APPEND);
 	}
 
 	public function admin_footer_text($footer_text)
@@ -3162,8 +3397,8 @@ class IP2LocationCountryBlocker
 
 		if ($current_screen && strpos($current_screen->id, $plugin_name) !== false) {
 			$footer_text .= sprintf(
-				__('Enjoyed %1$s? Please leave us a %2$s rating. A huge thanks in advance!', $plugin_name),
-				'<strong>' . __('IP2Location Country Blocker', $plugin_name) . '</strong>',
+				/* translators: %1$s: a value, %2$s: a value. */ __('Enjoyed %1$s? Please leave us a %2$s rating. A huge thanks in advance!', 'ip2location-country-blocker'),
+				'<strong>' . __('IP2Location Country Blocker', 'ip2location-country-blocker') . '</strong>',
 				'<a href="https://wordpress.org/support/plugin/' . $plugin_name . '/reviews/?filter=5/#new-post" target="_blank">&#9733;&#9733;&#9733;&#9733;&#9733;</a>'
 			);
 		}
@@ -3307,17 +3542,60 @@ class IP2LocationCountryBlocker
 
 	private function post($key, $default = '', $checkbox = false)
 	{
-		return (isset($_POST[$key])) ? ((is_array($_POST[$key])) ? $this->sanitize_array($_POST[$key]) : sanitize_text_field($_POST[$key])) : $default;
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- callers verify a nonce before saving.
+		if (!isset($_POST[$key])) {
+			return $default;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce checked by callers; sanitised below.
+		$value = wp_unslash($_POST[$key]);
+
+		return is_array($value) ? $this->sanitize_array($value) : sanitize_text_field($value);
+	}
+
+	private function post_textarea($key, $default = '')
+	{
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- callers verify a nonce before saving.
+		if (!isset($_POST[$key])) {
+			return $default;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce checked by callers; sanitised below.
+		return sanitize_textarea_field(wp_unslash($_POST[$key]));
 	}
 
 	private function get($key, $default = '', $checkbox = false)
 	{
-		return (isset($_GET[$key])) ? ((is_array($_GET[$key])) ? $this->sanitize_array($_GET[$key]) : sanitize_text_field($_GET[$key])) : $default;
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only page state, not a form action.
+		if (!isset($_GET[$key])) {
+			return $default;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitised below.
+		$value = wp_unslash($_GET[$key]);
+
+		return is_array($value) ? $this->sanitize_array($value) : sanitize_text_field($value);
+	}
+
+	/**
+	 * Read a $_SERVER value. $_SERVER is not slashed by WordPress, so the
+	 * unslash is only there to satisfy the sniffs.
+	 */
+	private function server($key, $default = '')
+	{
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- validated and sanitised on this line.
+		return (isset($_SERVER[$key])) ? sanitize_text_field(wp_unslash($_SERVER[$key])) : $default;
 	}
 
 	private function is_checked($key, $default = 0)
 	{
-		return ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST[$key])) ? 0 : ((isset($_POST[$key])) ? 1 : (int) $default);
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- callers verify a nonce before saving.
+		if ($this->server('REQUEST_METHOD') === 'POST' && !isset($_POST[$key])) {
+			return 0;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- see above.
+		return (isset($_POST[$key])) ? 1 : (int) $default;
 	}
 
 	private function update_option($key, $value)
@@ -3383,11 +3661,11 @@ class IP2LocationCountryBlocker
 
 	private function is_backend_page()
 	{
-		if (preg_match('/wp-admin|(wp-)?login/', $_SERVER['SCRIPT_NAME'])) {
+		if (preg_match('/wp-admin|(wp-)?login/', $this->server('SCRIPT_NAME'))) {
 			return true;
 		}
 
-		return $GLOBALS['pagenow'] == trim(strtolower(parse_url(wp_login_url('', true), \PHP_URL_PATH)), '/');
+		return $GLOBALS['pagenow'] == trim(strtolower(wp_parse_url(wp_login_url('', true), \PHP_URL_PATH)), '/');
 	}
 
 	private function block_backend($country_code, $email = true)
@@ -3437,24 +3715,31 @@ class IP2LocationCountryBlocker
 				$side,
 				// basename() alone would return the query string; parse the path first.
 				basename((string) wp_parse_url(home_url(add_query_arg([])), PHP_URL_PATH)),
-				date('Y-m-d H:i:s'),
+				gmdate('Y-m-d H:i:s'),
 			]);
 		}
 	}
 
 	private function ip()
 	{
+		// Debug override from Settings.
+		$debug_ip = $this->get_option('debug_ip');
+
+		if ($debug_ip && filter_var($debug_ip, FILTER_VALIDATE_IP)) {
+			return $debug_ip;
+		}
+
 		// Trust forwarded headers only when explicitly enabled.
 		if ($this->get_option('trust_x_forwarded_for') !== '1') {
-			return $_SERVER['REMOTE_ADDR'];
+			return $this->server('REMOTE_ADDR');
 		}
 
 		if ($this->get_option('real_ip_header')) {
-			return $_SERVER[$this->get_option('real_ip_header')] ?? $_SERVER['REMOTE_ADDR'];
+			return $this->server($this->get_option('real_ip_header'), $this->server('REMOTE_ADDR'));
 		}
 
 		// Possible using CloudFlare service
-		if (isset($_SERVER['HTTP_CF_CONNECTING_IP']) && filter_var($_SERVER['HTTP_CF_CONNECTING_IP'], FILTER_VALIDATE_IP)) {
+		if (null !== $this->server('HTTP_CF_CONNECTING_IP', null) && filter_var($this->server('HTTP_CF_CONNECTING_IP'), FILTER_VALIDATE_IP)) {
 			// Make sure originated IP is coming from CloudFlare network.
 			$networks = [
 				'173.245.48.0/20',
@@ -3482,14 +3767,14 @@ class IP2LocationCountryBlocker
 			];
 
 			foreach ($networks as $network) {
-				if ($this->cidr_match($_SERVER['REMOTE_ADDR'], $network)) {
-					return $_SERVER['HTTP_CF_CONNECTING_IP'];
+				if ($this->cidr_match($this->server('REMOTE_ADDR'), $network)) {
+					return $this->server('HTTP_CF_CONNECTING_IP');
 				}
 			}
 		}
 
 		// Possible Securi Firewall.
-		if (isset($_SERVER['HTTP_X_FORWARDED_FOR']) && filter_var($_SERVER['HTTP_X_FORWARDED_FOR'], FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+		if (null !== $this->server('HTTP_X_FORWARDED_FOR', null) && filter_var($this->server('HTTP_X_FORWARDED_FOR'), FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
 			// Make sure originated IP is coming from Securi network.
 			$networks = [
 				'192.88.134.0/23',
@@ -3500,23 +3785,23 @@ class IP2LocationCountryBlocker
 			];
 
 			foreach ($networks as $network) {
-				if ($this->cidr_match($_SERVER['REMOTE_ADDR'], $network)) {
-					return $_SERVER['HTTP_X_FORWARDED_FOR'];
+				if ($this->cidr_match($this->server('REMOTE_ADDR'), $network)) {
+					return $this->server('HTTP_X_FORWARDED_FOR');
 				}
 			}
 		}
 
 		// Possible local reverse proxy server.
-		if (!filter_var($_SERVER['REMOTE_ADDR'], FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-			if (isset($_SERVER['HTTP_X_REAL_IP']) && filter_var($_SERVER['HTTP_X_REAL_IP'], \FILTER_VALIDATE_IP, \FILTER_FLAG_NO_PRIV_RANGE | \FILTER_FLAG_NO_RES_RANGE)) {
-				return $_SERVER['HTTP_X_REAL_IP'];
+		if (!filter_var($this->server('REMOTE_ADDR'), FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+			if (null !== $this->server('HTTP_X_REAL_IP', null) && filter_var($this->server('HTTP_X_REAL_IP'), \FILTER_VALIDATE_IP, \FILTER_FLAG_NO_PRIV_RANGE | \FILTER_FLAG_NO_RES_RANGE)) {
+				return $this->server('HTTP_X_REAL_IP');
 			}
 
-			if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+			if (null !== $this->server('HTTP_X_FORWARDED_FOR', null)) {
 				// Get server IP address.
-				$server_ip = (isset($_SERVER['SERVER_ADDR'])) ? $_SERVER['SERVER_ADDR'] : '';
+				$server_ip = $this->server('SERVER_ADDR');
 
-				$ip = trim(current(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])));
+				$ip = trim(current(explode(',', $this->server('HTTP_X_FORWARDED_FOR'))));
 
 				if (filter_var($ip, \FILTER_VALIDATE_IP, \FILTER_FLAG_NO_PRIV_RANGE | \FILTER_FLAG_NO_RES_RANGE) && $ip != $server_ip) {
 					return $ip;
@@ -3524,7 +3809,7 @@ class IP2LocationCountryBlocker
 			}
 		}
 
-		return $_SERVER['REMOTE_ADDR'];
+		return $this->server('REMOTE_ADDR');
 	}
 
 	private function is_bot($interface = 'frontend')
@@ -3557,7 +3842,7 @@ class IP2LocationCountryBlocker
 
 			$occurrence = $this->wpdb_get_value('SELECT COUNT(*) FROM ' . $GLOBALS['wpdb']->prefix . 'ip2location_country_blocker_log WHERE ip_address = %s AND date_created >= %s', [
 				$this->ip(),
-				date('Y-m-d H:i:s', strtotime('-1 hour'))
+				gmdate('Y-m-d H:i:s', strtotime('-1 hour'))
 			]);
 
 			$message[] = 'IP2Location Country Blocker has detected and blocked the visitor from accessing your ' . (($side == 'frontend') ? 'website' : 'admin page') . ':';
@@ -3585,7 +3870,7 @@ class IP2LocationCountryBlocker
 	private function get_page_id($url = '')
 	{
 		if ($url) {
-			$parts = parse_url($url);
+			$parts = wp_parse_url($url);
 
 			$queries = [];
 
@@ -3603,7 +3888,7 @@ class IP2LocationCountryBlocker
 				$post_name = '';
 			}
 		} else {
-			$post_name = preg_replace('/\/?\?.+$/', '', trim($_SERVER['REQUEST_URI'], '/'));
+			$post_name = preg_replace('/\/?\?.+$/', '', trim($this->server('REQUEST_URI'), '/'));
 		}
 
 		if (strrpos($post_name, '/') !== false) {
@@ -3619,7 +3904,7 @@ class IP2LocationCountryBlocker
 
 	private function user_agent()
 	{
-		return $_SERVER['HTTP_USER_AGENT'] ?? '';
+		return $this->server('HTTP_USER_AGENT') ?? '';
 	}
 
 	private function redirect($url)
@@ -3655,13 +3940,13 @@ class IP2LocationCountryBlocker
 			return '';
 		}
 
-		if (!isset($_SERVER['HTTP_HOST'])) {
+		if (null === $this->server('HTTP_HOST', null)) {
 			return '';
 		}
 
-		$current_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+		$current_url = (null !== $this->server('HTTPS', null) && $this->server('HTTPS') === 'on' ? 'https' : 'http') . '://' . $this->server('HTTP_HOST') . $this->server('REQUEST_URI');
 
-		$parts = parse_url($current_url);
+		$parts = wp_parse_url($current_url);
 
 		$queries = [];
 
@@ -3680,6 +3965,7 @@ class IP2LocationCountryBlocker
 			$custom_error_html = $this->get_option('custom_error_html');
 
 			if (!empty($custom_error_html)) {
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- custom 403 page, sanitised with wp_kses on save.
 				echo $custom_error_html;
 				$this->write_debug_log('Access denied.', $action);
 				exit;
@@ -3700,8 +3986,8 @@ class IP2LocationCountryBlocker
 					<div style="margin:30px; text-align:center;">
 						' . (($show_logo) ? '<img src="data:image/png;base64,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" style="max-width:100%; width:450px;height:auto;" width="450" height="338" align="center" alt="Access Denied">' : '') . '
 						<div style="padding: 0px 30px; 10px 30px">
-							<h1>' . __('Access Denied', 'ip2location-country-blocker') . '</h1>
-							<div>' . __('Please contact web administrator for assistance.', 'ip2location-country-blocker') . '</div>
+							<h1>' . esc_html__('Access Denied', 'ip2location-country-blocker') . '</h1>
+							<div>' . esc_html__('Please contact web administrator for assistance.', 'ip2location-country-blocker') . '</div>
 						</div>
 						<div style="padding:10px 0;margin:60px 0 0 0;text-align:center;font-size:13px;">IP Geolocation Powered by <a href="https://wordpress.org/plugins/ip2location-country-blocker/" target="_blank">IP2Location Country Blocker</a></div>
 					</div>
@@ -3719,6 +4005,160 @@ class IP2LocationCountryBlocker
 	private function check_list($country_code, $ban_list, $mode = 1)
 	{
 		return ($mode == 1) ? $this->is_in_array($country_code, $ban_list) : !$this->is_in_array($country_code, $ban_list);
+	}
+
+	/**
+	 * Clean a region/city value returned by the lookup.
+	 */
+	private function clean_geo_field($value)
+	{
+		$value = trim((string) $value);
+
+		if ($value === '' || $value === '-' || stripos($value, 'This parameter is unavailable') === 0) {
+			return '';
+		}
+
+		return $value;
+	}
+
+	/**
+	 * Whether the current user should skip blocking.
+	 *
+	 * Administrators always bypass, so a misconfiguration cannot lock you out.
+	 */
+	private function current_user_bypasses_blocking()
+	{
+		if (current_user_can('administrator')) {
+			return true;
+		}
+
+		if (!is_user_logged_in()) {
+			return false;
+		}
+
+		if ($this->get_option('bypass_logged_in') === '1') {
+			return true;
+		}
+
+		$roles = $this->get_option('bypass_roles');
+		$roles = is_array($roles) ? $roles : [];
+
+		if (!$roles) {
+			return false;
+		}
+
+		$user = wp_get_current_user();
+
+		return (bool) array_intersect($roles, (array) $user->roles);
+	}
+
+	/**
+	 * Whether this visitor is restricted by the WooCommerce rules.
+	 */
+	private function is_woocommerce_restricted()
+	{
+		static $restricted = null;
+
+		if ($restricted !== null) {
+			return $restricted;
+		}
+
+		$restricted = false;
+
+		if ($this->get_option('woocommerce_enabled') !== '1' || !class_exists('WooCommerce')) {
+			return $restricted;
+		}
+
+		if (is_admin() && !wp_doing_ajax()) {
+			return $restricted;
+		}
+
+		if ($this->current_user_bypasses_blocking()) {
+			return $restricted;
+		}
+
+		$ban_list = $this->get_option('woocommerce_banlist');
+
+		if (!is_array($ban_list) || !$ban_list) {
+			return $restricted;
+		}
+
+		$result = $this->get_location($this->ip());
+
+		if (!empty($result['country_code'])) {
+			$restricted = $this->is_in_array($result['country_code'], $this->expand_ban_list($ban_list));
+		}
+
+		return $restricted;
+	}
+
+	private function woocommerce_mode_blocks($mode)
+	{
+		$current = $this->get_option('woocommerce_mode');
+
+		return ($current === $mode || $current === 'both');
+	}
+
+	private function get_woocommerce_message()
+	{
+		$message = $this->get_option('woocommerce_message');
+
+		return ($message) ? $message : __('Orders from your country are not accepted.', 'ip2location-country-blocker');
+	}
+
+	public function woocommerce_is_purchasable($purchasable)
+	{
+		if ($this->woocommerce_mode_blocks('purchase') && $this->is_woocommerce_restricted()) {
+			return false;
+		}
+
+		return $purchasable;
+	}
+
+	public function woocommerce_get_price_html($price)
+	{
+		if ($this->woocommerce_mode_blocks('purchase') && $this->is_woocommerce_restricted()) {
+			return '';
+		}
+
+		return $price;
+	}
+
+	public function woocommerce_add_to_cart_validation($passed)
+	{
+		if ($this->woocommerce_mode_blocks('purchase') && $this->is_woocommerce_restricted()) {
+			wc_add_notice($this->get_woocommerce_message(), 'error');
+
+			return false;
+		}
+
+		return $passed;
+	}
+
+	public function woocommerce_checkout_process()
+	{
+		if ($this->woocommerce_mode_blocks('checkout') && $this->is_woocommerce_restricted()) {
+			wc_add_notice($this->get_woocommerce_message(), 'error');
+		}
+	}
+
+	public function woocommerce_store_api_checkout()
+	{
+		if (!$this->woocommerce_mode_blocks('checkout') || !$this->is_woocommerce_restricted()) {
+			return;
+		}
+
+		if (!class_exists('\Automattic\WooCommerce\StoreApi\Exceptions\RouteException')) {
+			return;
+		}
+
+		// Rejects the order in block checkout.
+		throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException(
+			'ip2location_country_blocker_restricted',
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- plain text, shown as-is.
+			$this->get_woocommerce_message(),
+			403
+		);
 	}
 
 	private function expand_ban_list($ban_list)
@@ -3779,6 +4219,8 @@ class IP2LocationCountryBlocker
 				'country_name' => $data->country_name,
 				'is_proxy'     => $data->is_proxy,
 				'proxy_type'   => $data->proxy_type,
+				'region'       => isset($data->region) ? $data->region : '',
+				'city'         => isset($data->city) ? $data->city : '',
 			];
 		}
 
@@ -3787,6 +4229,8 @@ class IP2LocationCountryBlocker
 			'country_name' => '',
 			'is_proxy'     => '',
 			'proxy_type'   => '',
+			'region'       => '',
+			'city'         => '',
 		];
 
 		switch ($this->get_option('lookup_mode')) {
@@ -3814,6 +4258,8 @@ class IP2LocationCountryBlocker
 					} else {
 						$caches['country_code'] = $json->country_code;
 						$caches['country_name'] = $json->country_name;
+						$caches['region'] = $this->clean_geo_field(isset($json->region_name) ? $json->region_name : '');
+						$caches['city'] = $this->clean_geo_field(isset($json->city_name) ? $json->city_name : '');
 					}
 				} else {
 					$response = wp_remote_get('https://api.ip2location.com/v2/?' . http_build_query([
@@ -3861,6 +4307,8 @@ class IP2LocationCountryBlocker
 					// Store result into cache for later use.
 					$caches['country_code'] = $response['countryCode'];
 					$caches['country_name'] = $response['countryName'];
+					$caches['region'] = $this->clean_geo_field(isset($response['regionName']) ? $response['regionName'] : '');
+					$caches['city'] = $this->clean_geo_field(isset($response['cityName']) ? $response['cityName'] : '');
 				}
 				break;
 		}
@@ -3889,12 +4337,12 @@ class IP2LocationCountryBlocker
 						return $caches;
 					} else {
 						// Store result into cache for later use.
-						$caches = [
-							'country_code' => $json->country_code,
-							'country_name' => $json->country_name,
-							'is_proxy'     => ($json->is_proxy) ? 'YES' : 'NO',
-							'proxy_type'   => (isset($json->proxy_type)) ? $json->proxy_type : null,
-						];
+						$caches['country_code'] = $json->country_code;
+						$caches['country_name'] = $json->country_name;
+						$caches['is_proxy'] = ($json->is_proxy) ? 'YES' : 'NO';
+						$caches['proxy_type'] = (isset($json->proxy_type)) ? $json->proxy_type : null;
+						$caches['region'] = $this->clean_geo_field(isset($json->region_name) ? $json->region_name : '');
+						$caches['city'] = $this->clean_geo_field(isset($json->city_name) ? $json->city_name : '');
 					}
 				} else {
 					$response = wp_remote_get('https://api.ip2proxy.com/?' . http_build_query([
@@ -3915,12 +4363,10 @@ class IP2LocationCountryBlocker
 						return $caches;
 					} else {
 						// Store result into cache for later use.
-						$caches = [
-							'country_code' => $json->countryCode,
-							'country_name' => $json->countryName,
-							'is_proxy'     => ($json->isProxy) ? 'YES' : 'NO',
-							'proxy_type'   => $json->proxyType,
-						];
+						$caches['country_code'] = $json->countryCode;
+						$caches['country_name'] = $json->countryName;
+						$caches['is_proxy'] = ($json->isProxy) ? 'YES' : 'NO';
+						$caches['proxy_type'] = $json->proxyType;
 					}
 				}
 				break;
@@ -4009,7 +4455,7 @@ class IP2LocationCountryBlocker
 
 		$obj = new \IP2Location\Database(IP2LOCATION_DIR . $this->get_option('database'), \IP2Location\Database::FILE_IO);
 
-		return date('Y-m-d', strtotime(str_replace('.', '-', $obj->getDatabaseVersion())));
+		return gmdate('Y-m-d', strtotime(str_replace('.', '-', $obj->getDatabaseVersion())));
 	}
 
 	private function get_px_database_date()
@@ -4020,7 +4466,7 @@ class IP2LocationCountryBlocker
 
 		$db = new \IP2Proxy\Database(IP2LOCATION_DIR . $this->get_option('px_database'), \IP2PROXY\Database::FILE_IO);
 
-		return date('Y-m-d', strtotime(str_replace('.', '-', $db->getDatabaseVersion())));
+		return gmdate('Y-m-d', strtotime(str_replace('.', '-', $db->getDatabaseVersion())));
 	}
 
 	private function cache_add($key, $value)
@@ -4117,7 +4563,7 @@ class IP2LocationCountryBlocker
 			return $GLOBALS['wp_filesystem']->delete($path);
 		}
 
-		return @unlink($path);
+		return wp_delete_file($path);
 	}
 
 	private function cache_size()
@@ -4208,7 +4654,7 @@ class IP2LocationCountryBlocker
 			return '';
 		}
 
-		return '<p>' . sprintf(__('%1$s: imported %2$d of %3$d entr(y/ies). %4$d invalid entr(y/ies) were removed.', 'ip2location-country-blocker'), $label, $valid_count, $raw_count, $raw_count - $valid_count) . '</p>';
+		return '<p>' . sprintf(/* translators: %1$s: a value. */ __('%1$s: imported %2$d of %3$d entr(y/ies). %4$d invalid entr(y/ies) were removed.', 'ip2location-country-blocker'), $label, $valid_count, $raw_count, $raw_count - $valid_count) . '</p>';
 	}
 
 	private function sanitize_list($list)

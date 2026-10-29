@@ -9,9 +9,36 @@
     margin-top: 5px
 }
 
+/* Multi-select: keep tags and the search input on one line. */
 .chosen-container-multi .chosen-choices {
     border-radius: 4px;
     background-image: none;
+    box-sizing: border-box;
+    min-height: 35px;
+    padding: 2px 5px;
+}
+
+.chosen-container-multi .chosen-choices li.search-choice {
+    background-image: none;
+    margin: 2px 5px 2px 0;
+    padding: 4px 20px 4px 6px;
+    line-height: 15px;
+}
+
+.chosen-container-multi .chosen-choices li.search-choice .search-choice-close {
+    top: 50%;
+    right: 6px;
+    margin-top: -6px;
+}
+
+/* WP core forces a 30px min-height on text inputs, which broke the badge row. */
+.chosen-container-multi .chosen-choices li.search-field input[type="text"] {
+    min-height: 0;
+    height: 25px;
+    margin: 2px 0;
+    padding: 0 4px;
+    line-height: 25px;
+    box-shadow: none;
 }
 
 .chosen-container-active .chosen-choices,
@@ -24,10 +51,6 @@
 .chosen-container-active.chosen-with-drop .chosen-single {
     background: none;
     box-shadow: none;
-}
-
-.chosen-container-multi .chosen-choices li.search-choice {
-    background-image: none;
 }
 
 div.tagsinput span.tag {
