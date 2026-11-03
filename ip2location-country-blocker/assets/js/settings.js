@@ -139,7 +139,6 @@ jQuery(document).ready(function ($) {
 		}
 	});
 
-	//db
 	$('#btn-to-db-step-0').on('click', function (e) {
 		e.preventDefault();
 
@@ -220,7 +219,6 @@ jQuery(document).ready(function ($) {
 		$('#modal-db-step-3').css('display', 'block');
 	});
 
-	//api
 	$('#btn-to-api-step-0').on('click', function (e) {
 		e.preventDefault();
 
@@ -235,7 +233,6 @@ jQuery(document).ready(function ($) {
 		$btn.prop('disabled', true);
 		$('#api_status').html('<span class="dashicons dashicons-update spin"></span> Validating API key...');
 
-		// Validate IP2Location.io API key
 		$.post(
 			ajaxurl,
 			{
