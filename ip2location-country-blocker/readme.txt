@@ -5,7 +5,7 @@ Donate link: https://www.ip2location.com
 Tags: ip2location, block country, block proxy, redirection, ip address
 Requires at least: 4.7
 Tested up to: 7.1
-Stable tag: 2.46.1
+Stable tag: 2.46.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -93,6 +93,7 @@ Send us email at support@ip2location.com
 
 
 == Changelog ==
+* 2.46.2 Restored the missing admin menu icon.
 * 2.46.1 Fixed exemption for admin AJAX requests.
 * 2.46.0 Added role-based bypass and a WooCommerce restrictions page. Grouped the debug options into a Debugging section on the Settings page.
 * 2.45.2 Fixed some potential PHP warnings.

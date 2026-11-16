@@ -4,7 +4,7 @@
  * Plugin Name: IP2Location Country Blocker
  * Plugin URI: https://ip2location.com/resources/wordpress-ip2location-country-blocker
  * Description: Block visitors from accessing your website or admin area by their country.
- * Version: 2.46.1
+ * Version: 2.46.2
  * Requires PHP: 7.4
  * Author: IP2Location
  * Author URI: https://www.ip2location.com
@@ -2974,7 +2974,7 @@ class IP2LocationCountryBlocker {
 	}
 
 	public function add_admin_menu() {
-		add_menu_page( __( 'Country Blocker', 'ip2location-country-blocker' ), __( 'Country Blocker', 'ip2location-country-blocker' ), 'manage_options', 'ip2location-country-blocker', array( $this, 'frontend_page' ), 'dashicons-admin-ip2location', 30 );
+		add_menu_page( __( 'Country Blocker', 'ip2location-country-blocker' ), __( 'Country Blocker', 'ip2location-country-blocker' ), 'manage_options', 'ip2location-country-blocker', array( $this, 'frontend_page' ), plugins_url( '/assets/img/icon.svg', __FILE__ ), 30 );
 		add_submenu_page( 'ip2location-country-blocker', __( 'Frontend', 'ip2location-country-blocker' ), __( 'Frontend', 'ip2location-country-blocker' ), 'manage_options', 'ip2location-country-blocker', array( $this, 'frontend_page' ) );
 		add_submenu_page( 'ip2location-country-blocker', __( 'Backend', 'ip2location-country-blocker' ), __( 'Backend', 'ip2location-country-blocker' ), 'manage_options', 'ip2location-country-blocker-backend', array( $this, 'backend_page' ) );
 		add_submenu_page( 'ip2location-country-blocker', __( 'WooCommerce', 'ip2location-country-blocker' ), __( 'WooCommerce', 'ip2location-country-blocker' ), 'manage_options', 'ip2location-country-blocker-woocommerce', array( $this, 'woocommerce_page' ) );
