@@ -4,7 +4,7 @@
  * Plugin Name: IP2Location Country Blocker
  * Plugin URI: https://ip2location.com/resources/wordpress-ip2location-country-blocker
  * Description: Block visitors from accessing your website or admin area by their country.
- * Version: 2.46.3
+ * Version: 2.46.4
  * Requires PHP: 7.4
  * Author: IP2Location
  * Author URI: https://www.ip2location.com
@@ -4376,12 +4376,19 @@ class IP2LocationCountryBlocker {
 			$post_name = preg_replace( '/\/?\?.+$/', '', trim( $this->server( 'REQUEST_URI' ), '/' ) );
 		}
 
+		$post_name = trim( $post_name, '/' );
+
 		if ( strrpos( $post_name, '/' ) !== false ) {
 			$post_name = substr( $post_name, strrpos( $post_name, '/' ) + 1 );
 		}
 
+		// A bare host or the site root has no slug; an empty name matches auto-drafts.
+		if ( '' === $post_name ) {
+			return null;
+		}
+
 		$results = $this->wpdb_get_results(
-			"SELECT ID FROM {$GLOBALS['wpdb']->prefix}posts WHERE post_name = %s",
+			"SELECT ID FROM {$GLOBALS['wpdb']->prefix}posts WHERE post_name = %s AND post_status NOT IN ('auto-draft', 'trash')",
 			array(
 				$post_name,
 			)
@@ -4396,15 +4403,18 @@ class IP2LocationCountryBlocker {
 
 	private function redirect( $url ) {
 
-		$current_url = preg_replace( '/^https?:\/\//', '', home_url( add_query_arg( array() ) ) );
-		$new_url     = preg_replace( '/^https?:\/\//', '', $url );
-
-		if ( $new_url == $current_url ) {
+		if ( $this->normalize_url( home_url( add_query_arg( array() ) ) ) === $this->normalize_url( $url ) ) {
 			return;
 		}
 
-		if ( $this->get_page_id() !== null && $this->get_page_id() == $this->get_page_id( $new_url ) ) {
-			return;
+		// Only compare post IDs within this site; a bare host or root path has no page to match.
+		if ( $this->is_same_host( $url ) ) {
+			$current_id = $this->get_page_id();
+			$target_id  = $this->get_page_id( $url );
+
+			if ( null !== $current_id && null !== $target_id && (int) $current_id === (int) $target_id ) {
+				return;
+			}
 		}
 
 		$this->write_debug_log( 'Redirected to: "' . $url . '".', 'REDIRECTED' );
@@ -4412,6 +4422,20 @@ class IP2LocationCountryBlocker {
 		header( 'HTTP/1.1 301 Moved Permanently' );
 		header( 'Location: ' . $url );
 		exit;
+	}
+
+	private function normalize_url( $url ) {
+		return strtolower( rtrim( (string) preg_replace( '/^https?:\/\//i', '', trim( (string) $url ) ), '/' ) );
+	}
+
+	private function is_same_host( $url ) {
+		$host = wp_parse_url( $url, \PHP_URL_HOST );
+
+		if ( ! $host ) {
+			return true;
+		}
+
+		return strcasecmp( $host, (string) wp_parse_url( home_url(), \PHP_URL_HOST ) ) === 0;
 	}
 
 	private function build_url( $scheme, $host, $path, $queries ) {

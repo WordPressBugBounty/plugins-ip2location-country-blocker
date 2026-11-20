@@ -5,7 +5,7 @@ Donate link: https://www.ip2location.com
 Tags: ip2location, block country, block proxy, redirection, ip address
 Requires at least: 4.7
 Tested up to: 7.1
-Stable tag: 2.46.3
+Stable tag: 2.46.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -93,6 +93,7 @@ Send us email at support@ip2location.com
 
 
 == Changelog ==
+* 2.46.4 Fixed the frontend redirect being skipped on the homepage for targets ending with a slash.
 * 2.46.3 Added translators comments, removed unnecessary links.
 * 2.46.2 Restored the missing admin menu icon.
 * 2.46.1 Fixed exemption for admin AJAX requests.
