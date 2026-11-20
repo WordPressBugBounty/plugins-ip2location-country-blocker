@@ -4,7 +4,7 @@
  * Plugin Name: IP2Location Country Blocker
  * Plugin URI: https://ip2location.com/resources/wordpress-ip2location-country-blocker
  * Description: Block visitors from accessing your website or admin area by their country.
- * Version: 2.46.2
+ * Version: 2.46.3
  * Requires PHP: 7.4
  * Author: IP2Location
  * Author URI: https://www.ip2location.com
@@ -569,17 +569,17 @@ class IP2LocationCountryBlocker {
 			if ( ! empty( $frontend_auto_block_threshold ) && ! preg_match( '/^[0-9]+$/', $frontend_auto_block_threshold ) ) {
 				$frontend_status = '
 				<div class="error">
-					<p>' . sprintf( __( '%1$sERROR:%2$s Auto block threshold has to be a number.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
+					<p>' . sprintf( /* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __( '%1$sERROR:%2$s Auto block threshold has to be a number.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
 				</div>';
 			} elseif ( $frontend_option == 2 && ! filter_var( $frontend_error_page, \FILTER_VALIDATE_URL ) ) {
 				$frontend_status = '
 				<div class="error">
-					<p>' . sprintf( __( '%1$sERROR:%2$s Please choose a custom error page.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
+					<p>' . sprintf( /* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __( '%1$sERROR:%2$s Please choose a custom error page.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
 				</div>';
 			} elseif ( $frontend_option == 3 && ! filter_var( $frontend_redirect_url, \FILTER_VALIDATE_URL ) ) {
 				$frontend_status = '
 				<div class="error">
-					<p>' . sprintf( __( '%1$sERROR:%2$s Please provide a valid URL for redirection.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
+					<p>' . sprintf( /* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __( '%1$sERROR:%2$s Please provide a valid URL for redirection.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
 				</div>';
 			} else {
 
@@ -624,7 +624,7 @@ class IP2LocationCountryBlocker {
 		if ( $this->get_option( 'lookup_mode' ) == 'bin' && ! is_file( IP2LOCATION_DIR . $this->get_option( 'database' ) ) ) {
 			$frontend_status .= '
 			<div class="error">
-				<p>' . sprintf( __( '%1$sERROR:%2$s Unable to find the IP2Location BIN database! Please %3$sdownload the BIN database%4$s in Settings page.', 'ip2location-country-blocker' ), '<strong>', '</strong>', '<a href="#bin_download">', '</a>' ) . '</p>
+				<p>' . sprintf( /* translators: %1$s: opening bold tag, %2$s: closing bold tag, %3$s: opening link tag, %4$s: closing link tag. */ __( '%1$sERROR:%2$s Unable to find the IP2Location BIN database! Please %3$sdownload the BIN database%4$s in Settings page.', 'ip2location-country-blocker' ), '<strong>', '</strong>', '<a href="#bin_download">', '</a>' ) . '</p>
 			</div>';
 		}
 
@@ -658,7 +658,7 @@ class IP2LocationCountryBlocker {
 							<fieldset>
 								<legend class="screen-reader-text"><span>' . esc_html__( 'Blocking Mode', 'ip2location-country-blocker' ) . '</span></legend>
 								<label><input type="radio" name="frontend_block_mode" value="1"' . ( ( $frontend_block_mode == 1 ) ? ' checked' : '' ) . ' class="input-field" /> ' . esc_html__( 'Block countries listed below.', 'ip2location-country-blocker' ) . '</label><br />
-								<label><input type="radio" name="frontend_block_mode" value="2"' . ( ( $frontend_block_mode == 2 ) ? ' checked' : '' ) . ' class="input-field" /> ' . sprintf( esc_html__( 'Block all countries %1$sexcept%2$s countries listed below.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</label>
+								<label><input type="radio" name="frontend_block_mode" value="2"' . ( ( $frontend_block_mode == 2 ) ? ' checked' : '' ) . ' class="input-field" /> ' . sprintf( /* translators: %1$s: opening emphasis tag, %2$s: closing emphasis tag. */ esc_html__( 'Block all countries %1$sexcept%2$s countries listed below.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</label>
 							</fieldset>
 							<select name="frontend_ban_list[]" id="frontend_ban_list" data-placeholder="' . esc_html__( 'Choose Country...', 'ip2location-country-blocker' ) . '" multiple="true" class="chosen input-field">';
 		foreach ( $this->country_groups as $group_name => $countries ) {
@@ -672,7 +672,7 @@ class IP2LocationCountryBlocker {
 		}
 		echo '
 								</select>
-							<p>' . sprintf( esc_html__( '%1$sNote:%2$s For EU, APAC and other country groupings, please visit %3$sGeoDataSource Country Grouping Terminology%4$s for details.', 'ip2location-country-blocker' ), '<strong>', '</strong>', '<a href="https://github.com/geodatasource/country-grouping-terminology" target="_blank">', '</a>' ) . '</p>
+							<p>' . sprintf( /* translators: %1$s: opening bold tag, %2$s: closing bold tag, %3$s: opening link tag, %4$s: closing link tag. */ esc_html__( '%1$sNote:%2$s For EU, APAC and other country groupings, please visit %3$sGeoDataSource Country Grouping Terminology%4$s for details.', 'ip2location-country-blocker' ), '<strong>', '</strong>', '<a href="https://github.com/geodatasource/country-grouping-terminology" target="_blank">', '</a>' ) . '</p>
 						</td>
 					</tr>
 					</table>
@@ -712,7 +712,7 @@ class IP2LocationCountryBlocker {
 		echo '
 									</select>
 									<p class="description">
-										' . sprintf( esc_html__( 'This feature only works with %1$sIP2Proxy Commercial%2$s database.', 'ip2location-country-blocker' ), '<a href="https://www.ip2location.com/database/ip2proxy#wordpress-wzdicb" target="_blank">', '</a>' ) . '
+										' . sprintf( /* translators: %1$s: opening link tag, %2$s: closing link tag. */ esc_html__( 'This feature only works with %1$sIP2Proxy Commercial%2$s database.', 'ip2location-country-blocker' ), '<a href="https://www.ip2location.com/database/ip2proxy#wordpress-wzdicb" target="_blank">', '</a>' ) . '
 									</p>
 								</div>
 							</td>
@@ -845,7 +845,7 @@ class IP2LocationCountryBlocker {
 			$cache_warning = '
 			<div class="error">
 				<p>
-					' . sprintf( __( 'This IP2Location Country Blocker plugin does not work well with the %1$s%2$s%3$s cache plugin. To avoid unexpected results, we will strongly recommend you to deactivate the cache plugin.', 'ip2location-country-blocker' ), '<strong>', $name, '</strong>' ) . '
+					' . sprintf( /* translators: %1$s: opening bold tag, %2$s: cache plugin name, %3$s: closing bold tag. */ __( 'This IP2Location Country Blocker plugin does not work well with the %1$s%2$s%3$s cache plugin. To avoid unexpected results, we will strongly recommend you to deactivate the cache plugin.', 'ip2location-country-blocker' ), '<strong>', $name, '</strong>' ) . '
 				</p>
 			</div>';
 		}
@@ -908,17 +908,17 @@ class IP2LocationCountryBlocker {
 			if ( ! empty( $backend_auto_block_threshold ) && ! preg_match( '/^[0-9]+$/', $backend_auto_block_threshold ) ) {
 				$backend_status = '
 				<div class="error">
-					<p>' . sprintf( __( '%1$sERROR:%2$s Auto block threshold has to be a number.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
+					<p>' . sprintf( /* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __( '%1$sERROR:%2$s Auto block threshold has to be a number.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
 				</div>';
 			} elseif ( $backend_option == 2 && ! filter_var( $backend_error_page, \FILTER_VALIDATE_URL ) ) {
 				$backend_status = '
 				<div class="error">
-					<p>' . sprintf( __( '%1$sERROR:%2$s Please choose a custom error page.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
+					<p>' . sprintf( /* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __( '%1$sERROR:%2$s Please choose a custom error page.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
 				</div>';
 			} elseif ( $backend_option == 3 && ! filter_var( $backend_redirect_url, \FILTER_VALIDATE_URL ) ) {
 				$backend_status = '
 				<div class="error">
-					<p>' . sprintf( __( '%1$sERROR:%2$s Please provide a valid URL for redirection.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
+					<p>' . sprintf( /* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __( '%1$sERROR:%2$s Please provide a valid URL for redirection.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
 				</div>';
 			} else {
 
@@ -969,7 +969,7 @@ class IP2LocationCountryBlocker {
 		if ( $this->get_option( 'lookup_mode' ) == 'bin' && ! is_file( IP2LOCATION_DIR . $this->get_option( 'database' ) ) ) {
 			$backend_status .= '
 			<div class="error">
-				<p>' . sprintf( __( '%1$sERROR:%2$s Unable to find the IP2Location BIN database! Please download the database at at %3$sIP2Location commercial database%4$s | %5$sIP2Location LITE database (free edition)%6$s.', 'ip2location-country-blocker' ), '<strong>', '</strong>', '<a href="https://www.ip2location.com/?r=wordpress" target="_blank">', '</a>', '<a href="https://lite.ip2location.com/?r=wordpress" target="_blank">', '</a>' ) . '</p>
+				<p>' . sprintf( /* translators: %1$s: opening bold tag, %2$s: closing bold tag, %3$s and %5$s: opening link tags, %4$s and %6$s: closing link tags. */ __( '%1$sERROR:%2$s Unable to find the IP2Location BIN database! Please download the database at at %3$sIP2Location commercial database%4$s | %5$sIP2Location LITE database (free edition)%6$s.', 'ip2location-country-blocker' ), '<strong>', '</strong>', '<a href="https://www.ip2location.com/?r=wordpress" target="_blank">', '</a>', '<a href="https://lite.ip2location.com/?r=wordpress" target="_blank">', '</a>' ) . '</p>
 			</div>';
 		}
 
@@ -1006,7 +1006,7 @@ class IP2LocationCountryBlocker {
 								<fieldset>
 									<legend class="screen-reader-text"><span>Blocking Mode</span></legend>
 									<label><input type="radio" name="backend_block_mode" value="1"' . ( ( $backend_block_mode == 1 ) ? ' checked' : '' ) . ' class="input-field" /> ' . esc_html__( 'Block countries listed below.', 'ip2location-country-blocker' ) . '</label><br />
-									<label><input type="radio" name="backend_block_mode" value="2"' . ( ( $backend_block_mode == 2 ) ? ' checked' : '' ) . ' class="input-field" /> ' . sprintf( esc_html__( 'Block all countries %1$sexcept%2$s countries listed below.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</label>
+									<label><input type="radio" name="backend_block_mode" value="2"' . ( ( $backend_block_mode == 2 ) ? ' checked' : '' ) . ' class="input-field" /> ' . sprintf( /* translators: %1$s: opening emphasis tag, %2$s: closing emphasis tag. */ esc_html__( 'Block all countries %1$sexcept%2$s countries listed below.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</label>
 								</fieldset>
 
 								<select name="backend_ban_list[]" id="backend_ban_list" data-placeholder="Choose Country..." multiple="true" class="chosen input-field">';
@@ -1023,7 +1023,7 @@ class IP2LocationCountryBlocker {
 		echo '
 								</select>
 
-								<p>' . sprintf( esc_html__( '%1$sNote:%2$s For EU, APAC and other country groupings, please visit %3$sGeoDataSource Country Grouping Terminology%4$s for details.', 'ip2location-country-blocker' ), '<strong>', '</strong>', '<a href="https://github.com/geodatasource/country-grouping-terminology" target="_blank">', '</a>' ) . '</p>
+								<p>' . sprintf( /* translators: %1$s: opening bold tag, %2$s: closing bold tag, %3$s: opening link tag, %4$s: closing link tag. */ esc_html__( '%1$sNote:%2$s For EU, APAC and other country groupings, please visit %3$sGeoDataSource Country Grouping Terminology%4$s for details.', 'ip2location-country-blocker' ), '<strong>', '</strong>', '<a href="https://github.com/geodatasource/country-grouping-terminology" target="_blank">', '</a>' ) . '</p>
 							</td>
 						</tr>
 					</table>
@@ -1064,7 +1064,7 @@ class IP2LocationCountryBlocker {
 									</select>
 
 									<p class="description">
-										' . sprintf( esc_html__( 'This feature only works with %1$sIP2Proxy Commercial%2$s database.', 'ip2location-country-blocker' ), '<a href="https://www.ip2location.com/database/ip2proxy#wordpress-wzdicb" target="_blank">', '</a>' ) . '
+										' . sprintf( /* translators: %1$s: opening link tag, %2$s: closing link tag. */ esc_html__( 'This feature only works with %1$sIP2Proxy Commercial%2$s database.', 'ip2location-country-blocker' ), '<a href="https://www.ip2location.com/database/ip2proxy#wordpress-wzdicb" target="_blank">', '</a>' ) . '
 									</p>
 								</div>
 							</td>
@@ -1145,7 +1145,7 @@ class IP2LocationCountryBlocker {
 							<td>
 								<input type="text" name="bypass_code" id="bypass_code" maxlength="20" value="' . esc_attr( $bypass_code ) . '" class="regular-text code input-field" />
 								<p class="description">
-									' . sprintf( esc_html__( 'This is the secret code used to bypass all blockings to backend pages. It take precedence over all block settings configured. To bypass, you just need to append the %1$ssecret_code%2$s parameter with above value to the wp-login.php page. For example, https://www.example.com/wp-login.php%3$s?secret_code=1234567%4$s. If you add in %5$s&action=emergency_stop%6$s, both frontend and backend blocking will be disabled immediately.', 'ip2location-country-blocker' ), '<strong>', '</strong>', '<code>', '</code>', '<code>', '</code>' ) . '
+									' . sprintf( /* translators: %1$s: opening bold tag, %2$s: closing bold tag, %3$s and %5$s: opening code tags, %4$s and %6$s: closing code tags. */ esc_html__( 'This is the secret code used to bypass all blockings to backend pages. It take precedence over all block settings configured. To bypass, you just need to append the %1$ssecret_code%2$s parameter with above value to the wp-login.php page. For example, https://www.example.com/wp-login.php%3$s?secret_code=1234567%4$s. If you add in %5$s&action=emergency_stop%6$s, both frontend and backend blocking will be disabled immediately.', 'ip2location-country-blocker' ), '<strong>', '</strong>', '<code>', '</code>', '<code>', '</code>' ) . '
 								</p>
 							</td>
 						</tr>
@@ -1309,7 +1309,7 @@ class IP2LocationCountryBlocker {
 		<div class="wrap">
 			<h1>' . esc_html__( 'Statistics (Past 30 Days)', 'ip2location-country-blocker' ) . '</h1>
 
-			' . ( ( $this->get_option( 'log_enabled' ) ) ? '' : '<div class="notice notice-warning inline"><p>' . sprintf( esc_html__( 'Visitor log is disabled. Please enable it in the %1$sSettings%2$s page to collect statistics data.', 'ip2location-country-blocker' ), '<a href="admin.php?page=ip2location-country-blocker-settings">', '</a>' ) . '</p></div>' ) . '
+			' . ( ( $this->get_option( 'log_enabled' ) ) ? '' : '<div class="notice notice-warning inline"><p>' . sprintf( /* translators: %1$s: opening link tag, %2$s: closing link tag. */ esc_html__( 'Visitor log is disabled. Please enable it in the %1$sSettings%2$s page to collect statistics data.', 'ip2location-country-blocker' ), '<a href="admin.php?page=ip2location-country-blocker-settings">', '</a>' ) . '</p></div>' ) . '
 
 			<div class="iplcb-stat-grid">
 				<div class="iplcb-stat-card">
@@ -1330,7 +1330,7 @@ class IP2LocationCountryBlocker {
 				<div class="iplcb-stat-card">
 					<span class="iplcb-stat-label">' . esc_html__( 'Unique IPs Blocked', 'ip2location-country-blocker' ) . '</span>
 					<span class="iplcb-stat-value">' . number_format( $unique_ips ) . '</span>
-					<span class="iplcb-stat-sub">' . ( ( $top_country_code ) ? sprintf( esc_html__( 'Top country: %1$s (%2$s)', 'ip2location-country-blocker' ), esc_html( $this->get_country_name( $top_country_code ) ), number_format( $top_country_total ) ) : '' ) . '</span>
+					<span class="iplcb-stat-sub">' . ( ( $top_country_code ) ? sprintf( /* translators: %1$s: country name, %2$s: number of visitors. */ esc_html__( 'Top country: %1$s (%2$s)', 'ip2location-country-blocker' ), esc_html( $this->get_country_name( $top_country_code ) ), number_format( $top_country_total ) ) : '' ) . '</span>
 				</div>
 			</div>
 
@@ -1571,7 +1571,7 @@ class IP2LocationCountryBlocker {
 			if ( ! filter_var( $ip_address, \FILTER_VALIDATE_IP, \FILTER_FLAG_NO_PRIV_RANGE | \FILTER_FLAG_NO_RES_RANGE ) ) {
 				$ip_lookup_status = '
 				<div class="error">
-					<p>' . sprintf( __( '%1$sERROR:%2$s Please enter an IP address.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
+					<p>' . sprintf( /* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __( '%1$sERROR:%2$s Please enter an IP address.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
 				</div>';
 			} else {
 				$result = $this->get_location( $ip_address );
@@ -1579,12 +1579,12 @@ class IP2LocationCountryBlocker {
 				if ( empty( $result['country_code'] ) ) {
 					$ip_lookup_status = '
 					<div class="error">
-						<p>' . sprintf( __( '%1$sERROR:%2$s Unable to lookup IP address %3$s%4$s%5$s.', 'ip2location-country-blocker' ), '<strong>', '</strong>', '<strong>', esc_html( $ip_address ), '</strong>' ) . '</p>
+						<p>' . sprintf( /* translators: %1$s: opening bold tag, %2$s: closing bold tag, %3$s: opening bold tag, %4$s: IP address, %5$s: closing bold tag. */ __( '%1$sERROR:%2$s Unable to lookup IP address %3$s%4$s%5$s.', 'ip2location-country-blocker' ), '<strong>', '</strong>', '<strong>', esc_html( $ip_address ), '</strong>' ) . '</p>
 					</div>';
 				} else {
 					$ip_lookup_status = '
 					<div class="updated">
-						<p>' . sprintf( __( 'IP address %1$s%2$s%3$s belongs to %4$s%5$s (%6$s)%7$s.', 'ip2location-country-blocker' ), '<code>', esc_html( $ip_address ), '</code>', '<strong>', esc_html( $result['country_name'] ), esc_html( $result['country_code'] ), '<strong>' ) . '</p>
+						<p>' . sprintf( /* translators: %1$s: opening code tag, %2$s: IP address, %3$s: closing code tag, %4$s: opening strong tag, %5$s: country name, %6$s: country code, %7$s: closing strong tag. */ __( 'IP address %1$s%2$s%3$s belongs to %4$s%5$s (%6$s)%7$s.', 'ip2location-country-blocker' ), '<code>', esc_html( $ip_address ), '</code>', '<strong>', esc_html( $result['country_name'] ), esc_html( $result['country_code'] ), '<strong>' ) . '</p>
 					</div>';
 
 					if ( ! empty( $result['region'] ) || ! empty( $result['city'] ) ) {
@@ -1699,7 +1699,7 @@ class IP2LocationCountryBlocker {
 				if ( empty( $api_key ) ) {
 					$settings_status = '
 					<div class="error">
-						<p>' . sprintf( __( '%1$sERROR:%2$s Invalid IP2Location API key.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
+						<p>' . sprintf( /* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __( '%1$sERROR:%2$s Invalid IP2Location API key.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
 					</div>';
 				} else {
 					$response = wp_remote_get(
@@ -1731,12 +1731,12 @@ class IP2LocationCountryBlocker {
 						if ( empty( $json ) ) {
 							$settings_status = '
 							<div class="error">
-								<p>' . sprintf( __( '%1$sERROR:%2$s Error when accessing IP2Location web service gateway.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
+								<p>' . sprintf( /* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __( '%1$sERROR:%2$s Error when accessing IP2Location web service gateway.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
 							</div>';
 						} elseif ( ! preg_match( '/^[0-9]+$/', $json->response ) ) {
 								$settings_status = '
 								<div class="error">
-									<p>' . sprintf( __( '%1$sERROR:%2$s Invalid IP2Location API key.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
+									<p>' . sprintf( /* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __( '%1$sERROR:%2$s Invalid IP2Location API key.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
 								</div>';
 						} else {
 							$this->update_option( 'api_key', $api_key );
@@ -1744,7 +1744,7 @@ class IP2LocationCountryBlocker {
 					} elseif ( ! preg_match( '/^[0-9]+$/', $json->response ) ) {
 							$settings_status = '
 							<div class="error">
-								<p>' . sprintf( __( '%1$sERROR:%2$s Invalid IP2Location API key.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
+								<p>' . sprintf( /* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __( '%1$sERROR:%2$s Invalid IP2Location API key.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
 							</div>';
 					} else {
 						$this->update_option( 'api_key', $api_key );
@@ -1756,7 +1756,7 @@ class IP2LocationCountryBlocker {
 				if ( empty( $px_api_key ) ) {
 					$settings_status .= '
 					<div class="error">
-						' . sprintf( __( '%1$sERROR:%2$s Invalid IP2Proxy API key.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
+						' . sprintf( /* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __( '%1$sERROR:%2$s Invalid IP2Proxy API key.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
 					</div>';
 				} else {
 					$response = wp_remote_get(
@@ -1787,12 +1787,12 @@ class IP2LocationCountryBlocker {
 						if ( empty( $json ) ) {
 							$settings_status = '
 							<div class="error">
-								<p>' . sprintf( __( '%1$sERROR:%2$s Error when accessing IP2Proxy web service gateway.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
+								<p>' . sprintf( /* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __( '%1$sERROR:%2$s Error when accessing IP2Proxy web service gateway.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
 							</div>';
 						} elseif ( ! preg_match( '/^[0-9]+$/', $json->response ) ) {
 								$settings_status .= '
 								<div class="error">
-									<p>' . sprintf( __( '%1$sERROR:%2$s Invalid IP2Proxy API key.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
+									<p>' . sprintf( /* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __( '%1$sERROR:%2$s Invalid IP2Proxy API key.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
 								</div>';
 						} else {
 							$this->update_option( 'px_api_key', $px_api_key );
@@ -1800,7 +1800,7 @@ class IP2LocationCountryBlocker {
 					} elseif ( ! preg_match( '/^[0-9]+$/', $json->response ) ) {
 							$settings_status .= '
 							<div class="error">
-								<p>' . sprintf( __( '%1$sERROR:%2$s Invalid IP2Proxy API key.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
+								<p>' . sprintf( /* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ __( '%1$sERROR:%2$s Invalid IP2Proxy API key.', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '</p>
 							</div>';
 					} else {
 						$this->update_option( 'px_api_key', $px_api_key );
@@ -1914,7 +1914,7 @@ class IP2LocationCountryBlocker {
 											</th>
 											<td>
 												<div>' . ( ( ! is_file( IP2LOCATION_DIR . $this->get_option( 'database' ) ) ) ? '<span class="dashicons dashicons-warning" title="Database file not found."></span>' : '' ) . esc_html( $this->get_option( 'database' ) ) . '
-												' . ( ( preg_match( '/LITE/', $this->get_option( 'database' ) ) ) ? '<p class="description">' . sprintf( esc_html__( 'If you are looking for high accuracy result, you should consider using the commercial version of %1$sIP2Location BIN database%2$s.', 'ip2location-country-blocker' ), '<a href="https://www.ip2location.com/database/db1-ip-country#wordpress-wzdicb" target="_blank">', '</a>' ) . '</p>' : '' ) . '
+												' . ( ( preg_match( '/LITE/', $this->get_option( 'database' ) ) ) ? '<p class="description">' . sprintf( /* translators: %1$s: opening link tag, %2$s: closing link tag. */ esc_html__( 'If you are looking for high accuracy result, you should consider using the commercial version of %1$sIP2Location BIN database%2$s.', 'ip2location-country-blocker' ), '<a href="https://www.ip2location.com/database/db1-ip-country#wordpress-wzdicb" target="_blank">', '</a>' ) . '</p>' : '' ) . '
 												</div></td>
 										</tr>
 										<tr>
@@ -2206,7 +2206,7 @@ class IP2LocationCountryBlocker {
 								' . esc_html__( 'If your WordPress is installed behind a reverse proxy or load balancer, the real IP address of the visitors may not forwarded correctly and causing inaccurate country results. Use this option to override the IP detected by IP2Location.', 'ip2location-country-blocker' ) . '
 							</p>
 							<p class="description">
-								' . wp_kses( sprintf( __( 'Detected IP: <strong>%s</strong>.', 'ip2location-country-blocker' ), esc_html( $this->ip() ) ), array( 'strong' => array() ) ) . '
+								' . wp_kses( sprintf( /* translators: %s: IP address. */ __( 'Detected IP: <strong>%s</strong>.', 'ip2location-country-blocker' ), esc_html( $this->ip() ) ), array( 'strong' => array() ) ) . '
 							</p>
 						</td>
 					</tr>
@@ -2272,7 +2272,7 @@ class IP2LocationCountryBlocker {
 							<label for="enable_debug_log">
 								<input type="checkbox" name="enable_debug_log" id="enable_debug_log" value="1"' . ( ( $enable_debug_log == 1 ) ? ' checked' : '' ) . ' /> ' . esc_html__( 'Enable Debugging Log', 'ip2location-country-blocker' ) . '
 								<p class="description">
-									' . sprintf( esc_html__( 'Debug log will store under "%1$s".', 'ip2location-country-blocker' ), esc_html( IP2LOCATION_DIR . $this->debug_log ) ) . '
+									' . sprintf( /* translators: %1$s: log file path. */ esc_html__( 'Debug log will store under "%1$s".', 'ip2location-country-blocker' ), esc_html( IP2LOCATION_DIR . $this->debug_log ) ) . '
 									<br>
 									<strong>For security concerns, please disable this option after completed debugging process.</strong>
 								</p>
@@ -2324,7 +2324,7 @@ class IP2LocationCountryBlocker {
 						<img src="' . esc_url( plugins_url( '/assets/img/get-started.png', __FILE__ ) ) . '" width="160" height="125" align="center" style="margin-top:5px;" alt="IP2Location Country Blocker">
 					</div>
 					<p style="margin-top:0;">
-						' . sprintf( esc_html__( '%1$sIP2Location Country Blocker%2$s is a plugin designed to restrict visitors or traffic based on their geolocation determined by their IP address', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '
+						' . sprintf( /* translators: %1$s: opening bold tag, %2$s: closing bold tag. */ esc_html__( '%1$sIP2Location Country Blocker%2$s is a plugin designed to restrict visitors or traffic based on their geolocation determined by their IP address', 'ip2location-country-blocker' ), '<strong>', '</strong>' ) . '
 					</p>
 					<p>
 						' . esc_html__( 'Please follow these steps to complete the setup.', 'ip2location-country-blocker' ) . '
@@ -2332,7 +2332,7 @@ class IP2LocationCountryBlocker {
 
 			if ( ! extension_loaded( 'bcmath' ) ) {
 				echo '
-					<span class="dashicons dashicons-warning"></span> ' . sprintf( esc_html__( 'IP2Location requires %1$s PHP extension enabled. Please enable this extension in your %2$s.', 'ip2location-country-blocker' ), '<strong>bcmath</strong>', '<strong>php.ini</strong>' ) . '
+					<span class="dashicons dashicons-warning"></span> ' . sprintf( /* translators: %1$s: PHP extension name, %2$s: configuration file name. */ esc_html__( 'IP2Location requires %1$s PHP extension enabled. Please enable this extension in your %2$s.', 'ip2location-country-blocker' ), '<strong>bcmath</strong>', '<strong>php.ini</strong>' ) . '
 					<p style="text-align:center;margin-top:25px">
 						<button class="button button-primary" style="padding:3px 18px;" disabled>' . esc_html__( 'Get Started', 'ip2location-country-blocker' ) . '</button>
 					</p>';
@@ -2409,7 +2409,7 @@ class IP2LocationCountryBlocker {
 							<input type="text" id="setup_token" class="regular-text code" maxlength="64" style="width:100%; margin-top: 10px; margin-bottom: 4px;">
 						</p>
 						<p class="description">
-							' . sprintf( esc_html__( 'Don\'t have an account yet? Sign up a %1$s free IP geolocation account%2$s to obtain your download token.', 'ip2location-country-blocker' ), '<a href="https://lite.ip2location.com/sign-up#wordpress-wzdicb" target="_blank">', '</a>' ) . '
+							' . sprintf( /* translators: %1$s: opening link tag, %2$s: closing link tag. */ esc_html__( 'Don\'t have an account yet? Sign up a %1$s free IP geolocation account%2$s to obtain your download token.', 'ip2location-country-blocker' ), '<a href="https://lite.ip2location.com/sign-up#wordpress-wzdicb" target="_blank">', '</a>' ) . '
 						</p>
 						<p id="token_status" style="margin-top:20px;margin-bottom:20px;">&nbsp;</p>
 					</form>
@@ -2512,7 +2512,7 @@ class IP2LocationCountryBlocker {
 							<input type="text" id="setup_api_key" class="regular-text code" maxlength="32" style="width:100%;margin-top: 10px; margin-bottom: 4px;">
 						</p>
 						<p class="description">
-							' . sprintf( esc_html__( 'Don\'t have an account yet? Sign up a %1$s free IP geolocation plan%2$s to obtain your API key.', 'ip2location-country-blocker' ), '<a href="https://www.ip2location.io/sign-up?ref=wp_icb" target="_blank">', '</a>' ) . '
+							' . sprintf( /* translators: %1$s: opening link tag, %2$s: closing link tag. */ esc_html__( 'Don\'t have an account yet? Sign up a %1$s free IP geolocation plan%2$s to obtain your API key.', 'ip2location-country-blocker' ), '<a href="https://www.ip2location.io/sign-up?ref=wp_icb" target="_blank">', '</a>' ) . '
 						</p>
 						<p id="api_status">&nbsp;</p>
 					</form>
@@ -3728,7 +3728,7 @@ class IP2LocationCountryBlocker {
 		echo '
 		<div class="error">
 			<p>
-				' . sprintf( esc_html__( 'IP2Location Country Blocker requires the IP2Location BIN database to work. %1$sSetup your database%2$s now.', 'ip2location-country-blocker' ), '<a href="' . esc_url( get_admin_url() ) . 'admin.php?page=ip2location-country-blocker-settings">', '</a>' ) . '
+				' . sprintf( /* translators: %1$s: opening link tag, %2$s: closing link tag. */ esc_html__( 'IP2Location Country Blocker requires the IP2Location BIN database to work. %1$sSetup your database%2$s now.', 'ip2location-country-blocker' ), '<a href="' . esc_url( get_admin_url() ) . 'admin.php?page=ip2location-country-blocker-settings">', '</a>' ) . '
 			</p>
 		</div>';
 	}
@@ -3859,7 +3859,7 @@ class IP2LocationCountryBlocker {
 		}
 
 		return sprintf(
-			__( 'Version %s', 'ip2location-country-blocker' ),
+			/* translators: %s: plugin version. */ __( 'Version %s', 'ip2location-country-blocker' ),
 			get_file_data( __FILE__, array( 'Version' => 'Version' ) )['Version'] ?? ''
 		);
 	}
@@ -3870,9 +3870,9 @@ class IP2LocationCountryBlocker {
 
 		if ( $current_screen && strpos( $current_screen->id, $plugin_name ) !== false ) {
 			$footer_text .= sprintf(
-				__( 'Enjoyed %1$s? Please leave us a %2$s rating. A huge thanks in advance!', 'ip2location-country-blocker' ),
+				/* translators: %1$s: plugin name, %2$s: star rating link. */ __( 'Enjoyed %1$s? Please leave us a %2$s rating. A huge thanks in advance!', 'ip2location-country-blocker' ),
 				'<strong>' . __( 'IP2Location Country Blocker', 'ip2location-country-blocker' ) . '</strong>',
-				'<a href="https://wordpress.org/support/plugin/' . $plugin_name . '/reviews/?filter=5/#new-post" target="_blank">&#9733;&#9733;&#9733;&#9733;&#9733;</a>'
+				'<a href="https://wordpress.org/support/plugin/' . $plugin_name . '/reviews/#new-post" target="_blank">&#9733;&#9733;&#9733;&#9733;&#9733;</a>'
 			);
 		}
 
@@ -5138,7 +5138,7 @@ class IP2LocationCountryBlocker {
 			return '';
 		}
 
-		return '<p>' . sprintf( __( '%1$s: imported %2$d of %3$d entr(y/ies). %4$d invalid entr(y/ies) were removed.', 'ip2location-country-blocker' ), $label, $valid_count, $raw_count, $raw_count - $valid_count ) . '</p>';
+		return '<p>' . sprintf( /* translators: %1$s: list label, %2$d: number of imported entries, %3$d: total entries, %4$d: number of invalid entries. */ __( '%1$s: imported %2$d of %3$d entr(y/ies). %4$d invalid entr(y/ies) were removed.', 'ip2location-country-blocker' ), $label, $valid_count, $raw_count, $raw_count - $valid_count ) . '</p>';
 	}
 
 	private function sanitize_list( $list ) {
